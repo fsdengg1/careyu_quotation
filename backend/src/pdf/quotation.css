@@ -1,0 +1,812 @@
+/* CARE YU AUTOMATION — A4 quotation pages
+   Colors sampled from the supplied Canva reference. */
+
+/* CARE YU AUTOMATION — A4 quotation pages
+   Colors sampled from the supplied Canva reference. */
+
+.q-root {
+  --cy-blue: #386eb4;
+  --cy-blue-deep: #2b5f9e;
+  --cy-cloud: #bcd0e9;
+  --cy-head: #b8cce4;
+  --cy-yellow: #ffff00;
+  --cy-red: #c00000;
+  --cy-black: #1a1a1a;
+  --cy-care: #2c2c2c;
+  --cy-yu: #2f6bb3;
+  --cy-muted: #333333;
+  --cy-border: #386eb4;
+  --page-w: 210mm;
+  --page-h: 297mm;
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Arial, sans-serif;
+  color: var(--cy-black);
+}
+
+.quotation-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quotation-page {
+  width: 210mm;
+  height: 297mm;
+  min-width: 210mm;
+  min-height: 297mm;
+  max-width: 210mm;
+  max-height: 297mm;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  page-break-after: always;
+  break-after: page;
+}
+
+.quotation-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.quotation-page .q-page-1,
+.quotation-page .q-page-2,
+.quotation-page .q-page-3,
+.quotation-page .q-page-4,
+.quotation-page .q-page-5 {
+  width: 100%;
+  height: 100%;
+  max-height: 297mm;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.preview-sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.preview-sheet + .preview-sheet {
+  margin-top: 12mm;
+}
+
+.preview-page-label {
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #5a6d86;
+  margin: 2px 0 10px;
+}
+
+.preview-overflow-alert {
+  max-width: 210mm;
+  background: #fff4e5;
+  color: #93370d;
+  border: 1px solid #f7c48a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.preview-sheet-stage {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.preview-sheet-stage .quotation-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  box-shadow: none;
+  margin: 0;
+}
+
+.quotation-document--print .quotation-page,
+.quotation-document--pdf .quotation-page {
+  margin: 0;
+  box-shadow: none;
+}
+
+
+/* ---------- Shared header / footer ---------- */
+.q-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 7mm 10mm 0;
+}
+
+.q-brand {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+}
+
+.q-brand img {
+  width: 14mm;
+  height: 14mm;
+  object-fit: contain;
+}
+
+.q-wordmark .wm-name {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  font-size: 13pt;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  color: var(--cy-care);
+}
+
+.q-wordmark .wm-name span {
+  color: var(--cy-yu);
+}
+
+.q-wordmark .wm-sub {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5.4pt;
+  letter-spacing: 0.38em;
+  color: #3a3a3a;
+  margin-top: 1.4mm;
+  padding-left: 1px;
+}
+
+.q-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5mm;
+  text-align: center;
+  font-size: 7.5pt;
+  color: #1f4e86;
+  line-height: 1.35;
+}
+
+.q-footer a,
+.q-footer .q-web {
+  color: #1f4e86;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.q-footer .q-tags {
+  color: #1f4e86;
+  font-size: 7pt;
+}
+
+.q-page-2 .q-footer {
+  width: calc(210mm - 58mm);
+  right: auto;
+}
+
+/* ---------- PAGE 1 COVER ---------- */
+.q-page-1 {
+  background: #fff;
+}
+
+.p1-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 9.2mm;
+  background: var(--cy-blue);
+  z-index: 5;
+}
+
+.p1-hero {
+  position: absolute;
+  top: 0;
+  left: 9.2mm;
+  right: 0;
+  height: 128mm;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.p1-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  filter: grayscale(8%) contrast(0.92) brightness(1.18);
+}
+
+.p1-hero-wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(188, 208, 233, 0.35) 100%
+  );
+}
+
+.p1-cloud {
+  position: absolute;
+  left: 9.2mm;
+  right: 0;
+  bottom: 0;
+  height: 176mm;
+  z-index: 2;
+  overflow: visible;
+}
+
+.p1-cloud svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50mm;
+  display: block;
+  overflow: visible;
+}
+
+.p1-cloud-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 32mm;
+  bottom: 0;
+  background: var(--cy-cloud);
+}
+
+.p1-logo-row {
+  position: absolute;
+  left: 18mm;
+  top: 102mm;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 4.2mm;
+}
+
+.p1-logo-row img {
+  width: 33mm;
+  height: 33mm;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 50%;
+  padding: 0.4mm;
+  box-shadow: 0 0 0 2.3mm #fff;
+}
+
+.p1-wordmark {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 78mm;
+}
+
+.p1-wordmark .wm-name {
+  font-family: Montserrat, "Arial Black", Arial, sans-serif;
+  font-weight: 800;
+  font-size: 23.5pt;
+  letter-spacing: 0.6px;
+  line-height: 0.9;
+  color: #1d1d1d;
+  white-space: nowrap;
+}
+
+.p1-wordmark .wm-name span {
+  color: #3b7fc4;
+}
+
+.p1-wordmark .wm-sub {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 2.6mm;
+  font-family: Montserrat, Arial, Helvetica, sans-serif;
+  font-weight: 600;
+  font-size: 8.3pt;
+  letter-spacing: 0;
+  color: #2b2b2b;
+  padding: 0 1px;
+}
+
+.p1-content {
+  position: absolute;
+  left: 18mm;
+  right: 12mm;
+  top: 148mm;
+  bottom: 8mm;
+  z-index: 4;
+}
+
+.p1-title {
+  text-align: center;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 20pt;
+  letter-spacing: 1.5px;
+  margin: 2mm 0 3mm;
+}
+
+.p1-project {
+  text-align: center;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 15.5pt;
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+  margin: 0 8mm 12mm;
+  text-transform: uppercase;
+}
+
+.p1-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8mm;
+  row-gap: 8mm;
+  margin: 0 2mm 10mm;
+}
+
+.p1-label {
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 11.5pt;
+  letter-spacing: 0.3px;
+}
+
+.p1-value {
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 12pt;
+  margin-top: 1mm;
+  text-transform: uppercase;
+}
+
+.p1-dated .p1-value {
+  text-transform: none;
+}
+
+.p1-grid .right {
+  text-align: right;
+}
+
+.p1-dated,
+.p1-client {
+  margin: 0 2mm 8mm;
+}
+
+.p1-bottom {
+  position: absolute;
+  left: 18mm;
+  right: 12mm;
+  bottom: 10mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8mm;
+  z-index: 4;
+}
+
+.p1-company-name {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  font-size: 9.5pt;
+  letter-spacing: 0.2px;
+}
+
+.p1-company-name span {
+  color: var(--cy-yu);
+}
+
+.p1-address {
+  font-size: 8.2pt;
+  line-height: 1.35;
+  max-width: 95mm;
+  margin-top: 1mm;
+}
+
+.p1-contacts {
+  text-align: right;
+  font-size: 9pt;
+  line-height: 1.55;
+}
+
+.p1-contacts .web {
+  font-weight: 700;
+}
+
+.p1-contacts .mail {
+  color: #1f4e86;
+  text-decoration: underline;
+}
+
+/* ---------- PAGE 2 ABOUT US ---------- */
+.q-page-2 {
+  padding: 0;
+  background: #fff;
+}
+
+.p2-layout {
+  display: flex;
+  height: 100%;
+}
+
+.p2-main {
+  flex: 1;
+  padding: 22mm 9mm 18mm 14mm;
+}
+
+.p2-right {
+  width: 58mm;
+  position: relative;
+  min-height: 100%;
+}
+
+.p2-logo-wrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8mm 6mm 4mm 0;
+  min-height: 24mm;
+  position: relative;
+  z-index: 2;
+}
+
+.p2-title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  font-size: 26pt;
+  margin: 2mm 0 8mm;
+  color: #111;
+}
+
+.p2-copy p {
+  font-size: 9.3pt;
+  line-height: 1.42;
+  text-align: justify;
+  margin: 0 0 4.2mm;
+  color: #222;
+}
+
+.p2-panel {
+  position: absolute;
+  top: 24mm;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--cy-blue);
+  color: #fff;
+  padding: 14mm 6mm 12mm;
+  box-sizing: border-box;
+}
+
+.p2-rule {
+  height: 1.1px;
+  background: #fff;
+  width: 78%;
+  margin-top: 2mm;
+}
+
+.p2-square {
+  position: absolute;
+  top: 16mm;
+  right: 7mm;
+  width: 5.5mm;
+  height: 5.5mm;
+  background: #cfd8e6;
+}
+
+.p2-panel-body {
+  margin-top: 28mm;
+  display: flex;
+  flex-direction: column;
+  gap: 11mm;
+}
+
+.p2-seamless {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 13pt;
+  letter-spacing: 1.2px;
+  line-height: 1.15;
+  color: #eef3f9;
+}
+
+.p2-spear {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.3;
+  color: #1b1b1b;
+}
+
+.p2-stat .num {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 800;
+  font-size: 22pt;
+  line-height: 1;
+}
+
+.p2-stat .lbl {
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  margin-top: 1.5mm;
+  line-height: 1.2;
+}
+
+/* ---------- PAGE 3 GUARANTEE ---------- */
+.q-page-3,
+.q-page-4,
+.q-page-5 {
+  padding: 6mm;
+}
+
+.q-frame {
+  border: 1.15pt solid var(--cy-blue);
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.p3-inner {
+  padding: 4mm 10mm 16mm;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.p3-title {
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-style: italic;
+  font-size: 12.5pt;
+  color: var(--cy-blue-deep);
+  letter-spacing: 1.5px;
+  margin: 4mm 0 3mm;
+}
+
+.p3-copy {
+  font-size: 9.6pt;
+  line-height: 1.38;
+  text-align: justify;
+  margin: 0 0 4mm;
+}
+
+.p3-watermark {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  width: 145mm;
+  text-align: center;
+  opacity: 0.16;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.p3-watermark img {
+  width: 62mm;
+  height: 62mm;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+.p3-watermark .wm-name {
+  font-size: 34pt;
+  letter-spacing: 1px;
+  margin-top: 2mm;
+}
+
+.p3-watermark .wm-sub {
+  font-size: 11pt;
+  letter-spacing: 0.78em;
+}
+
+.p3-copy,
+.p3-title {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- PAGE 4 COMMERCIAL ---------- */
+.q-page-4 {
+  background: #fff;
+}
+
+.p4-inner .q-header {
+  padding: 0 0 2mm;
+}
+
+.p4-intro {
+  font-size: 9.4pt;
+  line-height: 1.4;
+  margin: 3mm 4mm 5mm;
+}
+
+.p4-intro strong {
+  font-weight: 700;
+}
+
+.p4-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9pt;
+}
+
+.p4-table th,
+.p4-table td {
+  border: 0.7pt solid #222;
+  padding: 2.4mm 2mm;
+  vertical-align: middle;
+}
+
+.p4-table thead th {
+  background: var(--cy-head);
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 10pt;
+  text-align: center;
+}
+
+.p4-col-sl { width: 14mm; text-align: center; }
+.p4-col-desc { width: auto; }
+.p4-col-unit { width: 32mm; text-align: center; }
+.p4-col-qty { width: 16mm; text-align: center; }
+.p4-col-total { width: 34mm; text-align: center; }
+
+.p4-desc {
+  text-align: center;
+  line-height: 1.28;
+  font-size: 8.6pt;
+}
+
+.p4-sum td {
+  padding: 1.8mm 3mm;
+}
+
+.p4-sum-label {
+  text-align: right;
+  font-weight: 700;
+  color: var(--cy-red);
+  font-size: 9.5pt;
+}
+
+.p4-sum-value {
+  text-align: center;
+  font-weight: 700;
+  color: var(--cy-blue-deep);
+  font-size: 9.5pt;
+}
+
+.p4-sum-span {
+  border-right: none !important;
+}
+
+.p4-yellow td {
+  background: var(--cy-yellow);
+  font-weight: 700;
+  font-size: 9pt;
+  text-align: center;
+  padding: 3mm 2mm;
+}
+
+.p4-watermark-word {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18mm;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 22pt;
+  letter-spacing: 0.72em;
+  color: rgba(80, 80, 80, 0.18);
+  pointer-events: none;
+  font-weight: 600;
+}
+
+/* ---------- PAGE 5 TERMS ---------- */
+.p5-inner {
+  padding: 3mm 8mm 18mm;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.p5-title {
+  text-align: center;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  font-weight: 700;
+  font-size: 13pt;
+  color: var(--cy-blue);
+  letter-spacing: 1.4px;
+  margin: 1mm 0 4mm;
+}
+
+.p5-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 8.4pt;
+}
+
+.p5-table td {
+  border: 0.7pt solid #222;
+  padding: 2.1mm 2.2mm;
+  vertical-align: middle;
+}
+
+.p5-no {
+  width: 10mm;
+  text-align: center;
+  font-weight: 700;
+}
+
+.p5-key {
+  width: 32mm;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.p5-val {
+  line-height: 1.32;
+}
+
+.p5-val.emphasis {
+  color: var(--cy-red);
+  font-weight: 700;
+}
+
+.p5-close {
+  margin-top: 6mm;
+  font-size: 9pt;
+  text-align: center;
+  line-height: 1.45;
+}
+
+.p5-sign {
+  margin-top: 7mm;
+  text-align: right;
+  font-size: 9.5pt;
+  line-height: 1.4;
+  padding-right: 4mm;
+}
+
+.p5-sign .who {
+  font-weight: 700;
+}
+
+@media print {
+  .preview-sheet,
+  .preview-page-label,
+  .preview-overflow-alert,
+  .no-print {
+    display: none !important;
+  }
+
+  .quotation-page {
+    width: 210mm;
+    height: 297mm;
+    min-width: 210mm;
+    min-height: 297mm;
+    max-width: 210mm;
+    max-height: 297mm;
+    page-break-after: always;
+    break-after: page;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+  }
+
+  .quotation-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}

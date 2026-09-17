@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+.DS_Store
+backend/storage/pdfs/
+backend/uploads/
+frontend/dist/
+.vscode/
+_extract/
+_extract_assets.py
+*.pdf
+.prisma/

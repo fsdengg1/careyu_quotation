@@ -1,0 +1,40 @@
+const fs = require("fs");
+const path = require("path");
+const puppeteer = require("puppeteer");
+const { PrismaClient } = require("@prisma/client");
+const { renderQuotationHtml } = require("../src/pdf/template");
+const { serializeQuotation } = require("../src/services/quotationService");
+
+const prisma = new PrismaClient();
+const OUT = path.join(__dirname, "../../_extract/pdf-pages");
+
+async function main() {
+  fs.mkdirSync(OUT, { recursive: true });
+  const row = await prisma.quotation.findFirst({
+    where: { quotationNumber: "CY260917-0001" },
+    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true },
+  });
+  const quotation = serializeQuotation(row);
+  const html = renderQuotationHtml(quotation);
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    args: ["--no-sandbox"],
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
+  await page.setContent(html, { waitUntil: "load" });
+  const pages = await page.$$(".quotation-page");
+  for (let i = 0; i < pages.length; i += 1) {
+    await pages[i].screenshot({ path: path.join(OUT, `page-${i + 1}.png`) });
+  }
+  await browser.close();
+  console.log("screenshots", pages.length);
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

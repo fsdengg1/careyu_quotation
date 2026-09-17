@@ -1,0 +1,35 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  background: #eef2f6;
+  color: #1b2430;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+a { color: inherit; }
+
+img { max-width: 100%; display: block; }
+
+:root {
+  --ink: #152238;
+  --navy: #1c3358;
+  --blue: #386eb4;
+  --blue-deep: #2b5f9e;
+  --paper: #f5f7fb;
+  --card: #ffffff;
+  --line: #d5deea;
+  --danger: #b42318;
+  --ok: #067647;
+  --warn: #b54708;
+}
