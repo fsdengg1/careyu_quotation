@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatINR } from "../utils/currency";
 import { formatShortDate } from "../utils/dateFormat";
 import { quotationApi } from "../services/quotationApi";
+import { downloadQuotationPdf } from "../utils/pdfDownload";
 import QuotationPreview from "../components/quotation/QuotationPreview";
 
 export default function ViewQuotation() {
@@ -10,24 +11,41 @@ export default function ViewQuotation() {
   const navigate = useNavigate();
   const [quotation, setQuotation] = useState(null);
   const [error, setError] = useState("");
+  const [pdfState, setPdfState] = useState({ phase: "idle", seconds: 0 });
 
   useEffect(() => {
     quotationApi.get(id).then(setQuotation).catch((err) => setError(err.message));
   }, [id]);
 
+  useEffect(() => {
+    if (pdfState.phase !== "cooldown" || pdfState.seconds <= 0) return undefined;
+    const timer = setTimeout(() => {
+      setPdfState((current) => {
+        if (current.phase !== "cooldown") return current;
+        const seconds = current.seconds - 1;
+        return seconds <= 0 ? { phase: "idle", seconds: 0 } : { phase: "cooldown", seconds };
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [pdfState]);
+
   async function download() {
+    if (pdfState.phase === "generating" || pdfState.phase === "cooldown") return;
+    setError("");
     try {
-      const blob = await quotationApi.downloadPdf(id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = blob.filename || `${quotation.quotationNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadQuotationPdf(id, `${quotation.quotationNumber}.pdf`, setPdfState);
     } catch (err) {
       setError(err.message);
     }
   }
+
+  const pdfBusy = pdfState.phase === "generating" || pdfState.phase === "cooldown";
+  const pdfLabel =
+    pdfState.phase === "generating"
+      ? "Generating PDF..."
+      : pdfState.phase === "cooldown"
+        ? `Try Again in ${pdfState.seconds}s`
+        : "Download PDF";
 
   if (!quotation) return <div className="panel">{error || "Loading…"}</div>;
 
@@ -44,8 +62,8 @@ export default function ViewQuotation() {
           <Link className="btn btn-ghost" to={`/quotations/${id}/edit`}>
             Edit
           </Link>
-          <button className="btn btn-primary" type="button" onClick={download}>
-            Download PDF
+          <button className="btn btn-primary" type="button" onClick={download} disabled={pdfBusy}>
+            {pdfLabel}
           </button>
           <Link className="btn btn-dark" to={`/quotations/${id}/print`} target="_blank">
             Print

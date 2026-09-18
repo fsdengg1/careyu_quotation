@@ -88,6 +88,9 @@ async function generatePdf(req, res, next) {
 async function downloadPdf(req, res, next) {
   try {
     const quotation = await quotationService.getQuotation(req.params.id);
+    if (!quotation) {
+      return res.status(404).json({ error: "NOT_FOUND", message: "Quotation not found." });
+    }
     const { buffer, filename } = await pdfService.getPdf(quotation);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);

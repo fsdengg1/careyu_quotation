@@ -16,6 +16,22 @@ function filenameFromDisposition(header) {
   return plain ? plain[1].trim() : "";
 }
 
+function apiError(status, data = {}, retryAfter) {
+  const rateLimited = status === 429 || data.error === "PDF_GENERATION_RATE_LIMITED";
+  const message = rateLimited
+    ? "PDF generation is temporarily busy. Please wait a moment and try again."
+    : data.details?.length
+      ? data.details.join(" ")
+      : data.message || "Request failed.";
+  const error = new Error(message);
+  error.status = status;
+  error.code = data.error;
+  error.requestId = data.requestId;
+  error.retryAfter = retryAfter || data.retryAfter;
+  error.details = data.details;
+  return error;
+}
+
 export async function api(path, { method = "GET", body, isBlob = false } = {}) {
   const token = localStorage.getItem("careyu_token");
   const headers = {};
@@ -35,10 +51,12 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
     }
   }
 
+  const retryAfter = response.headers.get("Retry-After");
+
   if (isBlob) {
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ message: "Request failed." }));
-      throw new Error(err.message || "Request failed.");
+      const data = await response.json().catch(() => ({ message: "Request failed." }));
+      throw apiError(response.status, data, retryAfter);
     }
     const blob = await response.blob();
     blob.filename = filenameFromDisposition(response.headers.get("Content-Disposition"));
@@ -47,10 +65,7 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = data.details?.length ? data.details.join(" ") : data.message || "Request failed.";
-    const error = new Error(message);
-    error.details = data.details;
-    throw error;
+    throw apiError(response.status, data, retryAfter);
   }
   return data;
 }

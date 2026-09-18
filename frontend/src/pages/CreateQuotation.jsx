@@ -8,6 +8,7 @@ import {
   termsWithDefaults,
 } from "../data/staticContent";
 import { customerApi, quotationApi, settingsApi } from "../services/quotationApi";
+import { downloadQuotationPdf } from "../utils/pdfDownload";
 import QuotationForm from "../components/quotation/QuotationForm";
 import QuotationPreview from "../components/quotation/QuotationPreview";
 import QuotationPageNav from "../components/quotation/QuotationPageNav";
@@ -33,15 +34,6 @@ function payloadFromForm(form, status) {
   };
 }
 
-async function triggerDownload(id, fallbackName) {
-  const blob = await quotationApi.downloadPdf(id);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = blob.filename || fallbackName || "quotation.pdf";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function formFromQuotation(quotation, settings, { asNew = false } = {}) {
   const snapshot = asNew
@@ -84,6 +76,7 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
   const [page4Overflow, setPage4Overflow] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showCompletePreview, setShowCompletePreview] = useState(false);
+  const [pdfState, setPdfState] = useState({ phase: "idle", seconds: 0 });
   const isEdit = Boolean(existingId);
 
   useEffect(() => {
@@ -109,6 +102,18 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
     }
     boot().catch((err) => setError(err.message));
   }, [existingId, duplicateFromId]);
+
+  useEffect(() => {
+    if (pdfState.phase !== "cooldown" || pdfState.seconds <= 0) return undefined;
+    const timer = setTimeout(() => {
+      setPdfState((current) => {
+        if (current.phase !== "cooldown") return current;
+        const seconds = current.seconds - 1;
+        return seconds <= 0 ? { phase: "idle", seconds: 0 } : { phase: "cooldown", seconds };
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [pdfState]);
 
   const totals = useMemo(
     () =>
@@ -165,13 +170,14 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
   }
 
   async function download() {
+    if (pdfState.phase === "generating" || pdfState.phase === "cooldown") return;
     const saved = form.id ? form : await save("draft");
     if (!saved?.id && !form.id) return;
     const id = saved.id || form.id;
     setSaving(true);
+    setError("");
     try {
-      await quotationApi.generatePdf(id);
-      await triggerDownload(id, `${form.quotationNumber}.pdf`);
+      await downloadQuotationPdf(id, `${form.quotationNumber}.pdf`, setPdfState);
       setMessage("Download started.");
     } catch (err) {
       setError(err.message);
@@ -278,11 +284,20 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
           <button type="button" className="btn btn-dark" onClick={() => setShowCompletePreview(true)}>
             Preview Quotation
           </button>
-          <button type="button" className="btn btn-primary" onClick={generate} disabled={saving}>
+          <button type="button" className="btn btn-primary" onClick={generate} disabled={saving || pdfState.phase === "generating"}>
             Generate PDF
           </button>
-          <button type="button" className="btn btn-ghost" onClick={download} disabled={saving}>
-            Download
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={download}
+            disabled={saving || pdfState.phase !== "idle"}
+          >
+            {pdfState.phase === "generating"
+              ? "Generating PDF..."
+              : pdfState.phase === "cooldown"
+                ? `Try Again in ${pdfState.seconds}s`
+                : "Download"}
           </button>
           <button type="button" className="btn btn-ghost" onClick={printQuote}>
             Print

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { quotationApi } from "../services/quotationApi";
+import { downloadQuotationPdf } from "../utils/pdfDownload";
 import { formatINR } from "../utils/currency";
 import { formatShortDate } from "../utils/dateFormat";
 
@@ -9,6 +10,7 @@ export default function Quotations() {
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: "", client: "", from: "", to: "" });
   const [error, setError] = useState("");
+  const [pdfState, setPdfState] = useState({ id: null, phase: "idle", seconds: 0 });
 
   async function load(next = filters) {
     try {
@@ -23,6 +25,18 @@ export default function Quotations() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (pdfState.phase !== "cooldown" || pdfState.seconds <= 0) return undefined;
+    const timer = setTimeout(() => {
+      setPdfState((current) => {
+        if (current.phase !== "cooldown") return current;
+        const seconds = current.seconds - 1;
+        return seconds <= 0 ? { id: null, phase: "idle", seconds: 0 } : { ...current, seconds };
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [pdfState]);
+
   async function duplicate(id) {
     navigate(`/quotations/${id}/duplicate`);
   }
@@ -34,13 +48,14 @@ export default function Quotations() {
   }
 
   async function download(id, number) {
-    const blob = await quotationApi.downloadPdf(id);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${number}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (pdfState.phase === "generating") return;
+    if (pdfState.phase === "cooldown" && pdfState.id === id) return;
+    setError("");
+    try {
+      await downloadQuotationPdf(id, `${number}.pdf`, (next) => setPdfState({ id, ...next }));
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
@@ -118,8 +133,17 @@ export default function Quotations() {
                       <button className="btn btn-ghost" type="button" onClick={() => duplicate(row.id)}>
                         Duplicate
                       </button>
-                      <button className="btn btn-ghost" type="button" onClick={() => download(row.id, row.quotationNumber)}>
-                        PDF
+                      <button
+                        className="btn btn-ghost"
+                        type="button"
+                        disabled={pdfState.phase === "generating" || (pdfState.phase === "cooldown" && pdfState.id === row.id)}
+                        onClick={() => download(row.id, row.quotationNumber)}
+                      >
+                        {pdfState.id === row.id && pdfState.phase === "generating"
+                          ? "Generating PDF..."
+                          : pdfState.id === row.id && pdfState.phase === "cooldown"
+                            ? `Try Again in ${pdfState.seconds}s`
+                            : "PDF"}
                       </button>
                       <Link className="btn btn-ghost" to={`/quotations/${row.id}/print`} target="_blank">
                         Print

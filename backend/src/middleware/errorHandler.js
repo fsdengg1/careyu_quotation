@@ -1,9 +1,23 @@
 function errorHandler(err, req, res, next) {
-  console.error(err);
-  if (res.headersSent) return next(err);
   const status = err.status || err.statusCode || 500;
+  console.error(
+    JSON.stringify({
+      msg: "api_error",
+      status,
+      code: err.code,
+      requestId: err.requestId,
+      message: err.message,
+      path: req.originalUrl,
+    })
+  );
+  if (res.headersSent) return next(err);
+  if (err.retryAfter) {
+    res.setHeader("Retry-After", String(err.retryAfter));
+  }
   res.status(status).json({
+    error: err.code || undefined,
     message: err.message || "Internal server error.",
+    requestId: err.requestId || undefined,
     details: err.details || undefined,
   });
 }
