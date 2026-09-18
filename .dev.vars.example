@@ -1,0 +1,5 @@
+# Used only by `npx wrangler dev`. Copy to `.dev.vars` (never commit that file).
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=require"
+JWT_SECRET="replace-with-a-long-random-secret"
+JWT_EXPIRES_IN="7d"
+NODE_ENV="development"

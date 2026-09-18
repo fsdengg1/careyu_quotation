@@ -21,7 +21,7 @@ export default function ViewQuotation() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${quotation.quotationNumber}.pdf`;
+      a.download = blob.filename || `${quotation.quotationNumber}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

@@ -1,0 +1,24 @@
+{
+  "name": "careyu-quotation",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CARE YU quotation system — React frontend and Express API on one Cloudflare Worker",
+  "scripts": {
+    "postinstall": "npm install --prefix frontend && npm install --prefix backend",
+    "build": "node scripts/embed-pdf-assets.js && npm run prisma:generate --prefix backend && npm run build --prefix frontend",
+    "deploy": "npm run build && wrangler deploy",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "prisma:generate": "npm run prisma:generate --prefix backend",
+    "prisma:deploy": "npm run prisma:deploy --prefix backend",
+    "prisma:seed": "npm run prisma:seed --prefix backend",
+    "test:api": "node scripts/api-smoke.js",
+    "cf:build": "npm run build && wrangler deploy --dry-run --outdir dist/worker"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "dependencies": {
+    "wrangler": "^4.34.0"
+  }
+}

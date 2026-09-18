@@ -1,6 +1,5 @@
 const quotationService = require("../services/quotationService");
 const pdfService = require("../services/pdfService");
-const { buildPdfFilename } = require("../utils/pdfFilename");
 const { renderQuotationHtml } = require("../pdf/template");
 
 async function list(req, res, next) {
@@ -89,12 +88,10 @@ async function generatePdf(req, res, next) {
 async function downloadPdf(req, res, next) {
   try {
     const quotation = await quotationService.getQuotation(req.params.id);
-    let filePath = pdfService.getPdfPath(quotation);
-    if (!filePath) {
-      const generated = await pdfService.generatePdf(req.params.id);
-      filePath = generated.path;
-    }
-    res.download(filePath, buildPdfFilename(quotation));
+    const { buffer, filename } = await pdfService.getPdf(quotation);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(Buffer.from(buffer));
   } catch (error) {
     next(error);
   }

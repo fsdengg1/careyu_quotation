@@ -1,9 +1,7 @@
 require("dotenv").config();
 const bcrypt = require("bcryptjs");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../src/models/prisma");
 const { DEFAULT_COMPANY, DEFAULT_TERMS } = require("../src/utils/defaults");
-
-const prisma = new PrismaClient();
 
 async function main() {
   const password = await bcrypt.hash("CareYu@2026", 10);

@@ -1,11 +1,10 @@
+require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../src/models/prisma");
 const { renderQuotationHtml } = require("../src/pdf/template");
 const { serializeQuotation } = require("../src/services/quotationService");
-
-const prisma = new PrismaClient();
 const OUT = path.join(__dirname, "../../_extract/pdf-pages");
 
 async function main() {

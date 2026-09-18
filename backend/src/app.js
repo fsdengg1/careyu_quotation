@@ -9,18 +9,39 @@ const { errorHandler, notFound } = require("./middleware/errorHandler");
 const app = express();
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true,
-  })
-);
+
+const isWorker = process.env.CF_WORKER === "1";
+const isProduction = process.env.NODE_ENV === "production" || isWorker;
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (!isProduction) {
+  app.use(
+    cors({
+      origin: frontendUrl || "http://localhost:5173",
+      credentials: true,
+    })
+  );
+} else if (frontendUrl) {
+  app.use(
+    cors({
+      origin: frontendUrl,
+      credentials: true,
+    })
+  );
+}
+
 app.use(express.json({ limit: "2mb" }));
-app.use(morgan("dev"));
-app.use("/assets", express.static(path.join(__dirname, "pdf/assets")));
+
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
+
+if (process.env.NODE_ENV !== "production") {
+  app.use("/assets", express.static(path.join(__dirname, "pdf/assets")));
+}
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, service: "careyu-quotation-api" });
+  res.json({ status: "ok", service: "careyu-quotation" });
 });
 
 app.use("/api", routes);

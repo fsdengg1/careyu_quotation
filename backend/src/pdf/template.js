@@ -1,39 +1,7 @@
-const fs = require("fs");
-const path = require("path");
 const { formatINR } = require("../utils/currency");
 const { ABOUT_US, GUARANTEE_TEXT, DEFAULT_COMPANY, DEFAULT_TERMS } = require("../utils/defaults");
 const { calculateQuotation } = require("../utils/calculations");
-
-const ASSET_DIR = path.join(__dirname, "assets");
-const CSS_PATH = path.join(__dirname, "quotation.css");
-
-function readAsset(name) {
-  const file = path.join(ASSET_DIR, name);
-  if (!fs.existsSync(file)) return "";
-  const buf = fs.readFileSync(file);
-  const ext = path.extname(name).toLowerCase();
-  const mime = ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
-  return `data:${mime};base64,${buf.toString("base64")}`;
-}
-
-function fontFaceCss() {
-  const extraBold = fs.readFileSync(path.join(ASSET_DIR, "fonts", "Montserrat-ExtraBold.ttf")).toString("base64");
-  const semiBold = fs.readFileSync(path.join(ASSET_DIR, "fonts", "Montserrat-SemiBold.ttf")).toString("base64");
-  return `
-    @font-face {
-      font-family: "Montserrat";
-      font-style: normal;
-      font-weight: 800;
-      src: url(data:font/ttf;base64,${extraBold}) format("truetype");
-    }
-    @font-face {
-      font-family: "Montserrat";
-      font-style: normal;
-      font-weight: 600;
-      src: url(data:font/ttf;base64,${semiBold}) format("truetype");
-    }
-  `;
-}
+const { loadPdfAssets } = require("./loadAssets");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -334,10 +302,11 @@ function page5(q, company, assets) {
 }
 
 function renderQuotationHtml(quotation) {
-  const css = fs.readFileSync(CSS_PATH, "utf8");
+  const bundled = loadPdfAssets();
+  const css = bundled.css;
   const assets = {
-    logo: readAsset("careyu-logo.png"),
-    cover: readAsset("cover-bg.jpg"),
+    logo: bundled.logo,
+    cover: bundled.cover,
   };
   const company = { ...DEFAULT_COMPANY, ...(quotation.companySnapshot || {}) };
   const totals = calculateQuotation(
@@ -354,7 +323,7 @@ function renderQuotationHtml(quotation) {
   <meta charset="UTF-8" />
   <title>${escapeHtml(quotation.quotationNumber)} — Care Yu Quotation</title>
   <style>
-    ${fontFaceCss()}
+    ${bundled.fontFaceCss}
     ${css}
     @page { size: A4; margin: 0; }
     html, body { margin: 0; padding: 0; background: #fff; }

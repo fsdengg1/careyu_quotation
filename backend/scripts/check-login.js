@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+require("dotenv").config();
 const bcrypt = require("bcryptjs");
-
-const prisma = new PrismaClient();
+const prisma = require("../src/models/prisma");
 
 async function main() {
   const users = await prisma.user.findMany({ select: { id: true, email: true, name: true, password: true } });

@@ -1,4 +1,20 @@
-const API = "/api";
+const API = "/api"; // same-origin in production; Vite proxies /api to localhost:4001 in development
+
+function filenameFromDisposition(header) {
+  if (!header) return "";
+  const utf = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf) {
+    try {
+      return decodeURIComponent(utf[1]);
+    } catch {
+      return utf[1];
+    }
+  }
+  const quoted = header.match(/filename="([^"]+)"/i);
+  if (quoted) return quoted[1];
+  const plain = header.match(/filename=([^;]+)/i);
+  return plain ? plain[1].trim() : "";
+}
 
 export async function api(path, { method = "GET", body, isBlob = false } = {}) {
   const token = localStorage.getItem("careyu_token");
@@ -24,7 +40,9 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
       const err = await response.json().catch(() => ({ message: "Request failed." }));
       throw new Error(err.message || "Request failed.");
     }
-    return response.blob();
+    const blob = await response.blob();
+    blob.filename = filenameFromDisposition(response.headers.get("Content-Disposition"));
+    return blob;
   }
 
   const data = await response.json().catch(() => ({}));

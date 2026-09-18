@@ -38,7 +38,7 @@ async function triggerDownload(id, fallbackName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = fallbackName || "quotation.pdf";
+  a.download = blob.filename || fallbackName || "quotation.pdf";
   a.click();
   URL.revokeObjectURL(url);
 }
