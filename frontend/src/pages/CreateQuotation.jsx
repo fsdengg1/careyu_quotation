@@ -6,6 +6,7 @@ import {
   emptyQuotation,
   snapshotFromSettings,
   termsWithDefaults,
+  withSignatureDefaults,
 } from "../data/staticContent";
 import { customerApi, quotationApi, settingsApi } from "../services/quotationApi";
 import { downloadQuotationPdf } from "../utils/pdfDownload";
@@ -36,9 +37,12 @@ function payloadFromForm(form, status) {
 
 
 function formFromQuotation(quotation, settings, { asNew = false } = {}) {
-  const snapshot = asNew
-    ? snapshotFromSettings(settings)
-    : { ...snapshotFromSettings(settings), ...(quotation.companySnapshot || {}) };
+  const snapshot = withSignatureDefaults(
+    asNew
+      ? snapshotFromSettings(settings)
+      : { ...snapshotFromSettings(settings), ...(quotation.companySnapshot || {}) },
+    { asNew }
+  );
   return {
     ...(asNew ? {} : { id: quotation.id }),
     quotationNumber: asNew ? "" : quotation.quotationNumber || "",

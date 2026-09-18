@@ -56,6 +56,28 @@ export function emptyTerms() {
   };
 }
 
+export function withSignatureDefaults(snapshot = {}, { asNew = false } = {}) {
+  const source = snapshot && typeof snapshot === "object" ? snapshot : {};
+  if (asNew) {
+    return {
+      ...source,
+      signatureName: DEFAULT_COMPANY.signatureName,
+      signatureDesignation: DEFAULT_COMPANY.signatureDesignation,
+    };
+  }
+  const name = source.signatureName;
+  const designation = source.signatureDesignation;
+  return {
+    ...source,
+    signatureName:
+      name == null || String(name).trim() === "" ? DEFAULT_COMPANY.signatureName : String(name),
+    signatureDesignation:
+      designation == null || String(designation).trim() === ""
+        ? DEFAULT_COMPANY.signatureDesignation
+        : String(designation),
+  };
+}
+
 export function emptyQuotation(companySnapshot = DEFAULT_COMPANY, settings = {}) {
   return {
     quotationNumber: "",
@@ -71,7 +93,7 @@ export function emptyQuotation(companySnapshot = DEFAULT_COMPANY, settings = {})
     gstPercentage: settings.defaultGst ?? 18,
     gstAsExtra: true,
     terms: defaultTermsFromSettings(settings),
-    companySnapshot,
+    companySnapshot: withSignatureDefaults(companySnapshot, { asNew: true }),
     status: "draft",
   };
 }

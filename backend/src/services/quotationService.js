@@ -13,8 +13,8 @@ function snapshotFromSettings(settings) {
     email: source.email,
     phone: source.phone,
     logoPath: source.logoPath || "/assets/careyu-logo.png",
-    signatureName: source.signatureName || "",
-    signatureDesignation: source.signatureDesignation || "",
+    signatureName: source.signatureName || DEFAULT_COMPANY.signatureName,
+    signatureDesignation: source.signatureDesignation || DEFAULT_COMPANY.signatureDesignation,
     footerTagline: source.footerTagline,
   };
 }
