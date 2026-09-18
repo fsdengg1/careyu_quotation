@@ -6,7 +6,13 @@ const { buildPdfFilename } = require("../utils/pdfFilename");
 const { httpError } = require("../middleware/validate");
 const quotationService = require("./quotationService");
 
-const PDF_DIR = path.join(__dirname, "../../storage/pdfs");
+function getPdfDir() {
+  try {
+    return path.join(__dirname, "../../storage/pdfs");
+  } catch {
+    return "";
+  }
+}
 
 function getWorkerEnv() {
   return globalThis.__WORKER_ENV || null;
@@ -96,8 +102,9 @@ async function storePdf(id, pdfBuffer, workerEnv) {
     return `r2:${key}`;
   }
   if (!workerEnv) {
-    fs.mkdirSync(PDF_DIR, { recursive: true });
-    const outputPath = path.join(PDF_DIR, `${id}.pdf`);
+    const pdfDir = getPdfDir();
+    fs.mkdirSync(pdfDir, { recursive: true });
+    const outputPath = path.join(pdfDir, `${id}.pdf`);
     fs.writeFileSync(outputPath, pdfBuffer);
     return outputPath;
   }
@@ -117,8 +124,9 @@ async function readStoredPdf(quotation, workerEnv) {
   ) {
     return fs.readFileSync(quotation.pdfPath);
   }
-  const fallback = path.join(PDF_DIR, `${quotation.id}.pdf`);
-  if (!workerEnv && fs.existsSync(fallback)) return fs.readFileSync(fallback);
+  const fallbackDir = getPdfDir();
+  const fallback = fallbackDir ? path.join(fallbackDir, `${quotation.id}.pdf`) : "";
+  if (!workerEnv && fallback && fs.existsSync(fallback)) return fs.readFileSync(fallback);
   return null;
 }
 
@@ -160,4 +168,4 @@ async function getPdf(quotation) {
   return { buffer, filename: buildPdfFilename(quotation) };
 }
 
-module.exports = { generatePdf, getPdfBuffer, getPdf, PDF_DIR };
+module.exports = { generatePdf, getPdfBuffer, getPdf, get PDF_DIR() { return getPdfDir(); } };

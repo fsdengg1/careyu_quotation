@@ -1,51 +1,53 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "careyu-quotation",
-  "main": "worker/index.js",
-  "compatibility_date": "2026-09-18",
-  "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
-  "preview_urls": true,
-  "placement": {
-    "mode": "smart"
-  },
-  "vars": {
-    "NODE_ENV": "production"
-  },
-  "assets": {
-    "directory": "./frontend/dist",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
-  },
-  "browser": {
-    "binding": "BROWSER"
-  },
-  // Optional: enable R2 in the dashboard, create bucket careyu-quotation-pdfs, then add:
-  // "r2_buckets": [
-  //   { "binding": "PDF_BUCKET", "bucket_name": "careyu-quotation-pdfs" }
-  // ],
-  // After creating Hyperdrive, uncomment and paste the Hyperdrive ID:
-  // "hyperdrive": [
-  //   {
-  //     "binding": "HYPERDRIVE",
-  //     "id": "YOUR_HYPERDRIVE_ID"
-  //   }
-  // ],
-  "limits": {
-    "cpu_ms": 300000
-  },
-  "alias": {
-    "puppeteer": "./worker/aliases/puppeteer-stub.js"
-  },
-  "rules": [
-    {
-      "globs": ["**/*.wasm"],
-      "type": "CompiledWasm",
-      "fallthrough": true
-    }
-  ],
-  "observability": {
-    "enabled": true
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "careyu-quotation",
+	"main": "worker/index.js",
+	"compatibility_date": "2026-09-18",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"workers_dev": true,
+	"preview_urls": true,
+	"placement": {
+		"mode": "smart"
+	},
+	"vars": {
+		"NODE_ENV": "production"
+	},
+	"assets": {
+		"directory": "./frontend/dist",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"browser": {
+		"binding": "BROWSER"
+	},
+	// Optional: enable R2 in the dashboard, create bucket careyu-quotation-pdfs, then add:
+	// "r2_buckets": [
+	//   { "binding": "PDF_BUCKET", "bucket_name": "careyu-quotation-pdfs" }
+	// ],
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "03ebd14f8e8c461892634d47ace14d09"
+		}
+	],
+	"alias": {
+		"puppeteer": "./worker/aliases/puppeteer-stub.js"
+	},
+	"rules": [
+		{
+			"globs": [
+				"**/*.wasm"
+			],
+			"type": "CompiledWasm",
+			"fallthrough": true
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
 }

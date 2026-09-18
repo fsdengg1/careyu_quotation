@@ -36,8 +36,12 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-if (process.env.NODE_ENV !== "production") {
-  app.use("/assets", express.static(path.join(__dirname, "pdf/assets")));
+if (process.env.NODE_ENV !== "production" && process.env.CF_WORKER !== "1") {
+  try {
+    app.use("/assets", express.static(path.join(__dirname, "pdf/assets")));
+  } catch {
+    // Workers have no filesystem assets directory.
+  }
 }
 
 app.get("/api/health", (req, res) => {

@@ -1,13 +1,15 @@
+const { AsyncLocalStorage } = require("node:async_hooks");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
 const { getWorkerEnv, getSecret } = require("../runtime/env");
 
+const prismaAls = new AsyncLocalStorage();
 let prisma;
 
 function createAdapter(connectionString, { hyperdrive = false } = {}) {
   if (hyperdrive) {
-    return new PrismaPg({ connectionString });
+    return new PrismaPg({ connectionString, max: 1 });
   }
 
   const sslRequired = /sslmode=(require|verify-ca|verify-full|no-verify)/i.test(connectionString);
@@ -36,12 +38,33 @@ function createPrismaClient() {
 }
 
 function getPrisma() {
+  const store = prismaAls.getStore();
+  if (store) {
+    if (!store.client) store.client = createPrismaClient();
+    return store.client;
+  }
   if (!prisma) prisma = createPrismaClient();
   return prisma;
 }
 
+function runWithPrismaContext(fn) {
+  return prismaAls.run({ client: null }, fn);
+}
+
+async function disconnectRequestClient() {
+  const store = prismaAls.getStore();
+  if (store?.client) {
+    try {
+      await store.client.$disconnect();
+    } catch {
+      // Isolate is discarded after the request; ignore disconnect errors.
+    }
+    store.client = null;
+  }
+}
+
 module.exports = new Proxy(
-  { createPrismaClient },
+  { createPrismaClient, runWithPrismaContext, disconnectRequestClient },
   {
     get(target, prop) {
       if (prop in target) return target[prop];

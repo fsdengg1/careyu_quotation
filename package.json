@@ -5,7 +5,7 @@
   "description": "CARE YU quotation system — React frontend and Express API on one Cloudflare Worker",
   "scripts": {
     "postinstall": "npm install --prefix frontend && npm install --prefix backend",
-    "build": "node scripts/embed-pdf-assets.js && npm run prisma:generate --prefix backend && npm run build --prefix frontend",
+    "build": "node scripts/embed-pdf-assets.js && node scripts/patch-iconv-lite.js && npm run prisma:generate --prefix backend && npm run build --prefix frontend",
     "deploy": "npm run build && wrangler deploy",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
