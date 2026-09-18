@@ -287,6 +287,11 @@
 }
 
 @media print {
+  html, body, .print-root {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #fff !important;
+  }
   .app-shell, .sidebar, .page-head, .preview-toolbar, .form-pane, .no-print { display: none !important; }
   .preview-pane, .preview-scroll, .preview-container, .a4-frame, .print-root, .app-main, .workspace-shell {
     position: static !important;

@@ -1,15 +1,18 @@
 import { DEFAULT_COMPANY } from "../../data/staticContent";
 import { formatINR } from "../../utils/currency";
-import { PageFooter, PageHeader } from "./Brand";
+import { PageFooter, QuotationLogo, QuotationWatermark } from "./Brand";
 
 export default function QuotationPage4({ quotation, totals, company = DEFAULT_COMPANY, contentRef }) {
   const gstPct = Number(totals.gstPercentage);
 
+  const logo = company.logoPath || "/assets/careyu-logo.png";
+
   return (
     <section className="q-page-4" ref={contentRef}>
+      <QuotationLogo logo={logo} />
+      <QuotationWatermark logo={logo} />
       <div className="q-frame">
         <div className="p4-inner">
-          <PageHeader company={company} />
           <div className="p4-intro">
             <strong>Dear Sir,</strong>
             <br />

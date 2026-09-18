@@ -38,7 +38,7 @@ function payloadFromForm(form, status) {
 function formFromQuotation(quotation, settings, { asNew = false } = {}) {
   const snapshot = asNew
     ? snapshotFromSettings(settings)
-    : quotation.companySnapshot || snapshotFromSettings(settings);
+    : { ...snapshotFromSettings(settings), ...(quotation.companySnapshot || {}) };
   return {
     ...(asNew ? {} : { id: quotation.id }),
     quotationNumber: asNew ? "" : quotation.quotationNumber || "",
@@ -143,7 +143,12 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
       const saved = form.id
         ? await quotationApi.update(form.id, payload)
         : await quotationApi.create(payload);
-      setForm((current) => ({ ...current, id: saved.id, status: saved.status }));
+      setForm((current) => ({
+        ...current,
+        id: saved.id,
+        status: saved.status,
+        companySnapshot: saved.companySnapshot || current.companySnapshot,
+      }));
       setMessage(status === "draft" ? "Draft saved." : "Quotation saved.");
       return saved;
     } catch (err) {
@@ -196,7 +201,7 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
 
   function resetForm() {
     if (!window.confirm("Start a new quotation? All unsaved data will be cleared.")) return;
-    setForm(emptyQuotation(form.companySnapshot, companySettings));
+    setForm(emptyQuotation(snapshotFromSettings(companySettings), companySettings));
     setCurrentPage(1);
     setShowCompletePreview(false);
     setError("");

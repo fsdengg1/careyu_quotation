@@ -13,9 +13,26 @@ function snapshotFromSettings(settings) {
     email: source.email,
     phone: source.phone,
     logoPath: source.logoPath || "/assets/careyu-logo.png",
-    signatureName: source.signatureName,
-    signatureDesignation: source.signatureDesignation,
+    signatureName: source.signatureName || "",
+    signatureDesignation: source.signatureDesignation || "",
     footerTagline: source.footerTagline,
+  };
+}
+
+function mergeCompanySnapshot(existing, incoming) {
+  const base =
+    existing && typeof existing === "object" && !Array.isArray(existing)
+      ? existing
+      : snapshotFromSettings(DEFAULT_COMPANY);
+  if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) return base;
+  return {
+    ...base,
+    ...incoming,
+    signatureName: incoming.signatureName != null ? String(incoming.signatureName) : base.signatureName || "",
+    signatureDesignation:
+      incoming.signatureDesignation != null
+        ? String(incoming.signatureDesignation)
+        : base.signatureDesignation || "",
   };
 }
 
@@ -186,7 +203,7 @@ async function createQuotation(body, userId) {
       grandTotal: totals.grandTotal,
       amountInWords: totals.amountInWords,
       status: body.status || "draft",
-      companySnapshot: body.companySnapshot || snapshotFromSettings(settings),
+      companySnapshot: mergeCompanySnapshot(snapshotFromSettings(settings), body.companySnapshot),
       createdById: userId || null,
       items: {
         create: totals.items.map((item) => ({
@@ -265,6 +282,7 @@ async function updateQuotation(id, body, { forGenerate = false } = {}) {
         grandTotal: totals.grandTotal,
         amountInWords: totals.amountInWords,
         status: payload.status,
+        companySnapshot: mergeCompanySnapshot(existing.companySnapshot, body.companySnapshot),
         items: {
           create: totals.items.map((item) => ({
             serialNumber: item.serialNumber,

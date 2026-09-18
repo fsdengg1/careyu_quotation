@@ -1,10 +1,16 @@
 import { DEFAULT_COMPANY, DEFAULT_GENERAL_TERMS } from "../../data/staticContent";
-import { PageFooter, PageHeader } from "./Brand";
+import { PageFooter, QuotationLogo, QuotationWatermark } from "./Brand";
 
 function nl(value) {
   return String(value || "")
     .split("\n")
     .map((line, index) => <div key={`${line}-${index}`}>{line}</div>);
+}
+
+function cleanDisplay(value) {
+  const text = value == null ? "" : String(value).trim();
+  if (!text || text === "undefined" || text === "null" || text === "[object Object]") return "";
+  return text;
 }
 
 export default function QuotationPage5({ quotation, company = DEFAULT_COMPANY }) {
@@ -22,11 +28,17 @@ export default function QuotationPage5({ quotation, company = DEFAULT_COMPANY })
     ["", "", t.arbitration || DEFAULT_GENERAL_TERMS.arbitration, false],
   ];
 
+  const logo = company.logoPath || "/assets/careyu-logo.png";
+  const signatureName = cleanDisplay(company.signatureName);
+  const signatureDesignation = cleanDisplay(company.signatureDesignation);
+  const companyName = cleanDisplay(company.companyName) || "CARE YU AUTOMATION PVT LTD.";
+
   return (
     <section className="q-page-5">
+      <QuotationLogo logo={logo} />
+      <QuotationWatermark logo={logo} />
       <div className="q-frame">
         <div className="p5-inner">
-          <PageHeader company={company} />
           <h2 className="p5-title">TERMS AND CONDITIONS</h2>
           <table className="p5-table">
             <tbody>
@@ -47,12 +59,20 @@ export default function QuotationPage5({ quotation, company = DEFAULT_COMPANY })
           </div>
           <div className="p5-sign">
             Regards
+            {signatureName ? (
+              <>
+                <br />
+                <span className="who">{signatureName}</span>
+              </>
+            ) : null}
+            {signatureDesignation ? (
+              <>
+                <br />
+                {signatureDesignation}
+              </>
+            ) : null}
             <br />
-            <span className="who">{company.signatureName || "Shradha"}</span>
-            <br />
-            {company.signatureDesignation || "Business Head"}
-            <br />
-            {company.companyName || "Care YU Automation PVT. LTD"}
+            {companyName}
           </div>
           <PageFooter company={company} />
         </div>

@@ -41,7 +41,7 @@ function logPdf(event) {
 
 function pdfFingerprint(quotation) {
   const payload = {
-    n: quotation.quotationNumber,
+    v: "signature-v1",
     d: quotation.quotationDate,
     p: quotation.projectName,
     l: quotation.projectLocation,

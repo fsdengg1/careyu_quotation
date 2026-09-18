@@ -15,6 +15,12 @@ function nl2br(value) {
   return escapeHtml(value).replace(/\n/g, "<br/>");
 }
 
+function cleanDisplay(value) {
+  const text = value == null ? "" : String(value).trim();
+  if (!text || text === "undefined" || text === "null" || text === "[object Object]") return "";
+  return text;
+}
+
 function ordinal(n) {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -37,10 +43,25 @@ function splitProjectName(name) {
   return `${escapeHtml(words.slice(0, mid).join(" "))}<br/>${escapeHtml(words.slice(mid).join(" "))}`;
 }
 
-function brandBlock(logoSrc, extraClass = "") {
+function brandBlock(logoSrc) {
   return `
-    <div class="q-brand ${extraClass}">
+    <div class="q-brand">
       <img src="${logoSrc}" alt="Care Yu" />
+      <div class="q-wordmark">
+        <div class="wm-name">CARE <span>YU</span></div>
+        <div class="wm-sub">AUTOMATION</div>
+      </div>
+    </div>`;
+}
+
+function quotationLogo(logoSrc) {
+  return `<div class="quotation-logo">${brandBlock(logoSrc)}</div>`;
+}
+
+function quotationWatermark(logoSrc) {
+  return `
+    <div class="quotation-watermark" aria-hidden="true">
+      <img src="${logoSrc}" alt="" />
       <div class="q-wordmark">
         <div class="wm-name">CARE <span>YU</span></div>
         <div class="wm-sub">AUTOMATION</div>
@@ -121,13 +142,14 @@ function page2(company, assets) {
   const paragraphs = ABOUT_US.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
   return `
   <section class="q-page-2">
+    ${quotationLogo(assets.logo)}
+    ${quotationWatermark(assets.logo)}
     <div class="p2-layout">
       <div class="p2-main">
         <h2 class="p2-title">About us</h2>
         <div class="p2-copy">${paragraphs}</div>
       </div>
       <div class="p2-right">
-        <div class="p2-logo-wrap">${brandBlock(assets.logo)}</div>
         <aside class="p2-panel">
           <div class="p2-rule"></div>
           <div class="p2-square"></div>
@@ -148,19 +170,13 @@ function page2(company, assets) {
 function page3(company, assets) {
   return `
   <section class="q-page-3">
+    ${quotationLogo(assets.logo)}
+    ${quotationWatermark(assets.logo)}
     <div class="q-frame">
       <div class="p3-inner">
-        <div class="q-header" style="padding: 2mm 0 0;">${brandBlock(assets.logo)}</div>
         <h2 class="p3-title">GUARANTEE</h2>
         <p class="p3-copy">${escapeHtml(GUARANTEE_TEXT[0])}</p>
         <p class="p3-copy">${escapeHtml(GUARANTEE_TEXT[1])}</p>
-        <div class="p3-watermark">
-          <img src="${assets.logo}" alt="" />
-          <div class="q-wordmark">
-            <div class="wm-name">CARE <span>YU</span></div>
-            <div class="wm-sub">AUTOMATION</div>
-          </div>
-        </div>
         ${pageFooter(company)}
       </div>
     </div>
@@ -186,9 +202,10 @@ function page4(q, company, totals, assets) {
 
   return `
   <section class="q-page-4">
+    ${quotationLogo(assets.logo)}
+    ${quotationWatermark(assets.logo)}
     <div class="q-frame">
       <div class="p4-inner">
-        <div class="q-header" style="padding:0;">${brandBlock(assets.logo)}</div>
         <div class="p4-intro">
           <strong>Dear Sir,</strong><br/>
           We thank for your kind enquiry and we have pleasure to offer our rate for
@@ -252,6 +269,9 @@ function page4(q, company, totals, assets) {
 
 function page5(q, company, assets) {
   const t = { ...DEFAULT_TERMS, ...(q.terms || {}) };
+  const signatureName = cleanDisplay(company.signatureName);
+  const signatureDesignation = cleanDisplay(company.signatureDesignation);
+  const companyName = cleanDisplay(company.companyName) || "CARE YU AUTOMATION PVT LTD.";
   const rows = [
     ["1", "Software Development & Implementation", t.softwareDevelopment, false],
     ["2", "Quotation Validity", t.quotationValidity, false],
@@ -278,9 +298,10 @@ function page5(q, company, assets) {
 
   return `
   <section class="q-page-5">
+    ${quotationLogo(assets.logo)}
+    ${quotationWatermark(assets.logo)}
     <div class="q-frame">
       <div class="p5-inner">
-        <div class="q-header" style="padding:0;">${brandBlock(assets.logo)}</div>
         <h2 class="p5-title">TERMS AND CONDITIONS</h2>
         <table class="p5-table">
           <tbody>${body}</tbody>
@@ -290,10 +311,9 @@ function page5(q, company, assets) {
           Thanking You,
         </div>
         <div class="p5-sign">
-          Regards<br/>
-          <span class="who">${escapeHtml(company.signatureName || "Shradha")}</span><br/>
-          ${escapeHtml(company.signatureDesignation || "Business Head")}<br/>
-          ${escapeHtml(company.companyName || "Care YU Automation PVT. LTD")}
+          Regards${signatureName ? `<br/><span class="who">${escapeHtml(signatureName)}</span>` : ""}${
+            signatureDesignation ? `<br/>${escapeHtml(signatureDesignation)}` : ""
+          }<br/>${escapeHtml(companyName)}
         </div>
         ${pageFooter(company)}
       </div>
@@ -326,7 +346,7 @@ function renderQuotationHtml(quotation) {
     ${bundled.fontFaceCss}
     ${css}
     @page { size: A4; margin: 0; }
-    html, body { margin: 0; padding: 0; background: #fff; }
+    html, body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .quotation-document { width: 210mm; }
   </style>
 </head>

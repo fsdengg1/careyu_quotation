@@ -42,6 +42,13 @@
 }
 
 .quotation-page {
+  --q-logo-width: 14mm;
+  --q-logo-top: 9mm;
+  --q-logo-right: 10mm;
+  --q-wm-width: 145mm;
+  --q-wm-img: 62mm;
+  --q-wm-top: 58%;
+  --q-wm-opacity: 0.16;
   width: 210mm;
   height: 297mm;
   min-width: 210mm;
@@ -55,6 +62,8 @@
   flex-shrink: 0;
   page-break-after: always;
   break-after: page;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .quotation-page:last-child {
@@ -131,12 +140,13 @@
 }
 
 
-/* ---------- Shared header / footer ---------- */
-.q-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 7mm 10mm 0;
+/* ---------- Shared header / footer / watermark ---------- */
+.quotation-logo {
+  position: absolute;
+  top: var(--q-logo-top);
+  right: var(--q-logo-right);
+  z-index: 4;
+  pointer-events: none;
 }
 
 .q-brand {
@@ -145,10 +155,46 @@
   gap: 3mm;
 }
 
-.q-brand img {
-  width: 14mm;
-  height: 14mm;
+.q-brand img,
+.quotation-logo img {
+  width: var(--q-logo-width);
+  height: auto;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
+}
+
+.quotation-watermark {
+  position: absolute;
+  left: 50%;
+  top: var(--q-wm-top);
+  transform: translate(-50%, -50%);
+  width: var(--q-wm-width);
+  text-align: center;
+  opacity: var(--q-wm-opacity);
+  pointer-events: none;
+  z-index: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.quotation-watermark img {
+  width: var(--q-wm-img);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+.quotation-watermark .wm-name {
+  font-size: 34pt;
+  letter-spacing: 1px;
+  margin-top: 2mm;
+}
+
+.quotation-watermark .wm-sub {
+  font-size: 11pt;
+  letter-spacing: 0.78em;
 }
 
 .q-wordmark .wm-name {
@@ -448,6 +494,8 @@
 .p2-layout {
   display: flex;
   height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .p2-main {
@@ -459,16 +507,6 @@
   width: 58mm;
   position: relative;
   min-height: 100%;
-}
-
-.p2-logo-wrap {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 8mm 6mm 4mm 0;
-  min-height: 24mm;
-  position: relative;
-  z-index: 2;
 }
 
 .p2-title {
@@ -497,6 +535,7 @@
   color: #fff;
   padding: 14mm 6mm 12mm;
   box-sizing: border-box;
+  z-index: 1;
 }
 
 .p2-rule {
@@ -566,14 +605,18 @@
   height: 100%;
   box-sizing: border-box;
   position: relative;
+  z-index: 1;
   overflow: hidden;
 }
 
-.p3-inner {
-  padding: 4mm 10mm 16mm;
+.p3-inner,
+.p4-inner,
+.p5-inner {
+  padding: 18mm 10mm 16mm;
   height: 100%;
   box-sizing: border-box;
   position: relative;
+  z-index: 1;
 }
 
 .p3-title {
@@ -592,37 +635,6 @@
   margin: 0 0 4mm;
 }
 
-.p3-watermark {
-  position: absolute;
-  left: 50%;
-  top: 58%;
-  transform: translate(-50%, -50%);
-  width: 145mm;
-  text-align: center;
-  opacity: 0.16;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.p3-watermark img {
-  width: 62mm;
-  height: 62mm;
-  object-fit: contain;
-  margin: 0 auto;
-  display: block;
-}
-
-.p3-watermark .wm-name {
-  font-size: 34pt;
-  letter-spacing: 1px;
-  margin-top: 2mm;
-}
-
-.p3-watermark .wm-sub {
-  font-size: 11pt;
-  letter-spacing: 0.78em;
-}
-
 .p3-copy,
 .p3-title {
   position: relative;
@@ -632,10 +644,6 @@
 /* ---------- PAGE 4 COMMERCIAL ---------- */
 .q-page-4 {
   background: #fff;
-}
-
-.p4-inner .q-header {
-  padding: 0 0 2mm;
 }
 
 .p4-intro {
@@ -653,6 +661,8 @@
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 9pt;
+  position: relative;
+  z-index: 1;
 }
 
 .p4-table th,
@@ -724,16 +734,12 @@
   color: rgba(80, 80, 80, 0.18);
   pointer-events: none;
   font-weight: 600;
+  z-index: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 /* ---------- PAGE 5 TERMS ---------- */
-.p5-inner {
-  padding: 3mm 8mm 18mm;
-  height: 100%;
-  box-sizing: border-box;
-  position: relative;
-}
-
 .p5-title {
   text-align: center;
   font-family: "Times New Roman", Times, Georgia, serif;
@@ -803,6 +809,15 @@
   .preview-overflow-alert,
   .no-print {
     display: none !important;
+  }
+
+  .quotation-logo,
+  .quotation-watermark,
+  .p4-watermark-word,
+  .q-brand img,
+  .p1-logo-row img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .quotation-page {

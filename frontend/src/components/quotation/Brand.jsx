@@ -1,6 +1,8 @@
-export function BrandMark({ logo = "/assets/careyu-logo.png", size = "header" }) {
+const DEFAULT_LOGO = "/assets/careyu-logo.png";
+
+export function BrandMark({ logo = DEFAULT_LOGO }) {
   return (
-    <div className={`q-brand ${size === "cover" ? "p1-brand" : ""}`}>
+    <div className="q-brand">
       <img src={logo} alt="Care Yu Automation" />
       <div className="q-wordmark">
         <div className="wm-name">
@@ -14,7 +16,7 @@ export function BrandMark({ logo = "/assets/careyu-logo.png", size = "header" })
 
 const AUTOMATION_LETTERS = "AUTOMATION".split("");
 
-export function CoverBrand({ logo = "/assets/careyu-logo.png" }) {
+export function CoverBrand({ logo = DEFAULT_LOGO }) {
   return (
     <div className="p1-logo-row">
       <img src={logo} alt="Care Yu Automation" />
@@ -32,12 +34,30 @@ export function CoverBrand({ logo = "/assets/careyu-logo.png" }) {
   );
 }
 
-export function PageHeader({ company }) {
+export function QuotationLogo({ logo = DEFAULT_LOGO }) {
   return (
-    <div className="q-header">
-      <BrandMark logo={company?.logoPath || "/assets/careyu-logo.png"} />
+    <div className="quotation-logo">
+      <BrandMark logo={logo} />
     </div>
   );
+}
+
+export function QuotationWatermark({ logo = DEFAULT_LOGO }) {
+  return (
+    <div className="quotation-watermark" aria-hidden="true">
+      <img src={logo} alt="" />
+      <div className="q-wordmark">
+        <div className="wm-name">
+          CARE <span>YU</span>
+        </div>
+        <div className="wm-sub">AUTOMATION</div>
+      </div>
+    </div>
+  );
+}
+
+export function PageHeader({ company }) {
+  return <QuotationLogo logo={company?.logoPath || DEFAULT_LOGO} />;
 }
 
 export function PageFooter({ company }) {
