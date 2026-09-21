@@ -1,7 +1,6 @@
 import { createServer } from "node:http";
 import { httpServerHandler } from "cloudflare:node";
 import app from "../backend/src/app.js";
-import prisma from "../backend/src/models/prisma.js";
 import runtimeEnv from "../backend/src/runtime/env.js";
 
 process.env.CF_WORKER = "1";
@@ -28,15 +27,6 @@ function dispatch(request, workerEnv, ctx) {
 export default {
   async fetch(request, workerEnv, ctx) {
     apply(workerEnv);
-    const run = prisma.runWithPrismaContext || ((fn) => fn());
-    return run(async () => {
-      try {
-        return await dispatch(request, workerEnv, ctx);
-      } finally {
-        if (typeof prisma.disconnectRequestClient === "function") {
-          await prisma.disconnectRequestClient();
-        }
-      }
-    });
+    return dispatch(request, workerEnv, ctx);
   },
 };

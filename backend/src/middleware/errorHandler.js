@@ -1,5 +1,16 @@
+function isDbBusy(err) {
+  const message = String(err?.message || "");
+  return (
+    err?.code === "P2037" ||
+    err?.code === "53300" ||
+    /too many database connections/i.test(message) ||
+    /remaining connection slots/i.test(message)
+  );
+}
+
 function errorHandler(err, req, res, next) {
-  const status = err.status || err.statusCode || 500;
+  const busy = isDbBusy(err);
+  const status = busy ? 503 : err.status || err.statusCode || 500;
   console.error(
     JSON.stringify({
       msg: "api_error",
@@ -11,14 +22,16 @@ function errorHandler(err, req, res, next) {
     })
   );
   if (res.headersSent) return next(err);
-  if (err.retryAfter) {
-    res.setHeader("Retry-After", String(err.retryAfter));
+  if (err.retryAfter || busy) {
+    res.setHeader("Retry-After", String(err.retryAfter || 5));
   }
   res.status(status).json({
-    error: err.code || undefined,
-    message: err.message || "Internal server error.",
+    error: busy ? "DB_BUSY" : err.code || undefined,
+    message: busy
+      ? "The database is busy. Wait a few seconds and try signing in again."
+      : err.message || "Internal server error.",
     requestId: err.requestId || undefined,
-    details: err.details || undefined,
+    details: busy ? undefined : err.details || undefined,
   });
 }
 

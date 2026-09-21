@@ -1,70 +1,63 @@
-const { AsyncLocalStorage } = require("node:async_hooks");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
 const { getWorkerEnv, getSecret } = require("../runtime/env");
 
-const prismaAls = new AsyncLocalStorage();
 let prisma;
+let pool;
 
-function createAdapter(connectionString, { hyperdrive = false } = {}) {
-  if (hyperdrive) {
-    return new PrismaPg({ connectionString, max: 1 });
-  }
-
-  const sslRequired = /sslmode=(require|verify-ca|verify-full|no-verify)/i.test(connectionString);
-  const cleaned = connectionString
-    .replace(/([?&])sslmode=[^&]*/gi, "$1")
-    .replace(/[?&]$/, "")
-    .replace(/\?&/, "?");
-
-  const pool = new Pool({
-    connectionString: cleaned,
-    max: 5,
-    ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
-  });
-  return new PrismaPg(pool);
+function isWorkerRuntime() {
+  return process.env.CF_WORKER === "1" || Boolean(getWorkerEnv());
 }
 
-function createPrismaClient() {
+function resolveConnectionString() {
   const workerEnv = getWorkerEnv();
   const hyperdriveUrl = workerEnv?.HYPERDRIVE?.connectionString;
   const connectionString = hyperdriveUrl || getSecret("DATABASE_URL");
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set.");
   }
-  const adapter = createAdapter(connectionString, { hyperdrive: Boolean(hyperdriveUrl) });
-  return new PrismaClient({ adapter });
+  return { connectionString, hyperdrive: Boolean(hyperdriveUrl) };
+}
+
+function createAdapter() {
+  const { connectionString, hyperdrive } = resolveConnectionString();
+  const worker = isWorkerRuntime();
+  const sslRequired =
+    !hyperdrive && /sslmode=(require|verify-ca|verify-full|no-verify)/i.test(connectionString);
+  const cleaned = hyperdrive
+    ? connectionString
+    : connectionString
+        .replace(/([?&])sslmode=[^&]*/gi, "$1")
+        .replace(/[?&]$/, "")
+        .replace(/\?&/, "?");
+
+  pool = new Pool({
+    connectionString: cleaned,
+    max: worker ? 1 : 2,
+    min: 0,
+    idleTimeoutMillis: worker ? 5000 : 10000,
+    connectionTimeoutMillis: 10000,
+    allowExitOnIdle: true,
+    ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+  });
+  pool.on("error", (err) => {
+    console.error(JSON.stringify({ msg: "pg_pool_error", message: err.message }));
+  });
+  return new PrismaPg(pool);
+}
+
+function createPrismaClient() {
+  return new PrismaClient({ adapter: createAdapter() });
 }
 
 function getPrisma() {
-  const store = prismaAls.getStore();
-  if (store) {
-    if (!store.client) store.client = createPrismaClient();
-    return store.client;
-  }
   if (!prisma) prisma = createPrismaClient();
   return prisma;
 }
 
-function runWithPrismaContext(fn) {
-  return prismaAls.run({ client: null }, fn);
-}
-
-async function disconnectRequestClient() {
-  const store = prismaAls.getStore();
-  if (store?.client) {
-    try {
-      await store.client.$disconnect();
-    } catch {
-      // Isolate is discarded after the request; ignore disconnect errors.
-    }
-    store.client = null;
-  }
-}
-
 module.exports = new Proxy(
-  { createPrismaClient, runWithPrismaContext, disconnectRequestClient },
+  { createPrismaClient },
   {
     get(target, prop) {
       if (prop in target) return target[prop];
