@@ -10,12 +10,13 @@ export default function QuotationPageNav({ currentPage, form, onSelect }) {
           <button
             key={page.id}
             type="button"
-            className={`page-nav-btn ${active ? "active" : ""}`}
+            className={`page-nav-btn ${active ? "active" : ""} is-${status}`}
             onClick={() => onSelect(page.id)}
           >
-            <span className="page-nav-label">{page.label}</span>
-            <span className={`page-nav-status ${status}`}>
-              {status === "static" || status === "completed" ? "✓" : "○"} {statusLabel(status)}
+            <span className="page-nav-index">{page.id}</span>
+            <span className="page-nav-copy">
+              <span className="page-nav-label">{page.title}</span>
+              <span className={`page-nav-status ${status}`}>{statusLabel(status)}</span>
             </span>
           </button>
         );

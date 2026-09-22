@@ -14,7 +14,14 @@ import Settings from "./pages/Settings";
 
 function Protected({ children }) {
   const { user, ready } = useAuth();
-  if (!ready) return <div className="panel" style={{ margin: 24 }}>Loading…</div>;
+  if (!ready) {
+    return (
+      <div className="boot-screen" role="status">
+        <span className="spinner" />
+        <p>Opening Care Yu…</p>
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }

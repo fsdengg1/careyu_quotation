@@ -8,28 +8,52 @@ html, body, #root {
 }
 
 body {
-  font-family: "Segoe UI", Calibri, Arial, sans-serif;
-  background: #eef2f6;
-  color: #1b2430;
+  font-family: var(--font);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+  color: inherit;
 }
+
+button { cursor: pointer; }
 
 a { color: inherit; }
 
 img { max-width: 100%; display: block; }
 
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+::placeholder { color: #8b9aab; }
+
 :root {
-  --ink: #152238;
-  --navy: #1c3358;
-  --blue: #386eb4;
-  --blue-deep: #2b5f9e;
-  --paper: #f5f7fb;
+  --ink: #122033;
+  --muted: #5d6d82;
+  --navy: #12263f;
+  --navy-soft: #1b3558;
+  --blue: #2f6bb3;
+  --blue-deep: #24548f;
+  --blue-soft: #e7f1fb;
+  --paper: #f4f6f9;
   --card: #ffffff;
-  --line: #d5deea;
+  --line: #e4e9f0;
+  --line-strong: #d3dbe6;
   --danger: #b42318;
+  --danger-soft: #fdeceb;
   --ok: #067647;
+  --ok-soft: #e7f6ee;
   --warn: #b54708;
+  --warn-soft: #fff6e8;
+  --shadow: 0 1px 2px rgba(16, 32, 51, 0.04), 0 12px 32px rgba(16, 32, 51, 0.05);
+  --radius: 14px;
+  --sidebar: 252px;
+  --topbar: 64px;
+  --font: "Plus Jakarta Sans", "Segoe UI", sans-serif;
 }

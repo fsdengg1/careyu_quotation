@@ -28,23 +28,59 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <form className="login-card" onSubmit={submit}>
-        <img className="login-logo" src="/assets/careyu-logo.png" alt="Care Yu" />
-        <h1>Care Yu Quotation Studio</h1>
-        <p>Sign in to prepare branded five-page A4 quotations.</p>
-        {error ? <div className="alert">{error}</div> : null}
-        <div className="field" style={{ marginBottom: 12 }}>
-          <label>Email</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <aside className="login-aside">
+        <div>
+          <div className="login-brand">
+            <img src="/assets/careyu-logo.png" alt="" />
+            <div>
+              <strong>Care Yu</strong>
+              <span>Automation Pvt Ltd</span>
+            </div>
+          </div>
+          <h1>Quotations that match the Care Yu letterhead.</h1>
+          <p className="lede">
+            Prepare a five-page A4 quotation, preview it as you type, and issue the PDF from one workspace.
+          </p>
+          <ul className="login-points">
+            <li><i>✓</i> Cover, company profile and commercial pages</li>
+            <li><i>✓</i> Customer details filled from the master list</li>
+            <li><i>✓</i> Live A4 preview before you generate the PDF</li>
+          </ul>
         </div>
-        <div className="field" style={{ marginBottom: 16 }}>
-          <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", justifyContent: "center" }}>
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+        <footer>Care Yu Automation · Quotation studio</footer>
+      </aside>
+      <section className="login-panel">
+        <form className="login-card" onSubmit={submit}>
+          <h2>Sign in</h2>
+          <p className="sub">Use your Care Yu account to open the studio.</p>
+          {error ? <div className="alert">{error}</div> : null}
+          <div className="login-fields">
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

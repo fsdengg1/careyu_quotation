@@ -4,20 +4,28 @@ import { quotationApi } from "../services/quotationApi";
 import { downloadQuotationPdf } from "../utils/pdfDownload";
 import { formatINR } from "../utils/currency";
 import { formatShortDate } from "../utils/dateFormat";
+import RowMenu from "../components/ui/RowMenu";
+import StatePanel from "../components/ui/StatePanel";
+
+const STATUSES = ["draft", "generated", "sent", "approved", "rejected", "cancelled"];
 
 export default function Quotations() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: "", client: "", from: "", to: "" });
   const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(false);
   const [pdfState, setPdfState] = useState({ id: null, phase: "idle", seconds: 0 });
 
   async function load(next = filters) {
     try {
       const data = await quotationApi.list(next);
       setRows(data);
+      setError("");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoaded(true);
     }
   }
 
@@ -37,10 +45,6 @@ export default function Quotations() {
     return () => clearTimeout(timer);
   }, [pdfState]);
 
-  async function duplicate(id) {
-    navigate(`/quotations/${id}/duplicate`);
-  }
-
   async function remove(id) {
     if (!window.confirm("Delete this quotation?")) return;
     await quotationApi.remove(id);
@@ -58,103 +62,144 @@ export default function Quotations() {
     }
   }
 
+  function pdfLabel(id) {
+    if (pdfState.id !== id) return "Download PDF";
+    if (pdfState.phase === "generating") return "Generating PDF…";
+    if (pdfState.phase === "cooldown") return `Try again in ${pdfState.seconds}s`;
+    return "Download PDF";
+  }
+
+  if (!loaded) return <StatePanel error={error}>Loading quotations…</StatePanel>;
+
   return (
     <>
       <div className="page-head">
         <div>
+          <p className="page-kicker">Documents</p>
           <h1>Quotations</h1>
-          <p>Search, filter, duplicate and download issued Care Yu quotations.</p>
+          <p>Search the register, open a document, or start a new one from an existing quotation.</p>
         </div>
         <Link className="btn btn-primary" to="/quotations/new">
-          Create Quotation
+          New quotation
         </Link>
       </div>
       {error ? <div className="alert">{error}</div> : null}
-      <div className="panel">
-        <div className="filters">
-          <input
-            placeholder="Search number, project or client"
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          />
-          <input
-            placeholder="Client"
-            value={filters.client}
-            onChange={(e) => setFilters({ ...filters, client: e.target.value })}
-          />
-          <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-            <option value="">All statuses</option>
-            {["draft", "generated", "sent", "approved", "rejected", "cancelled"].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
-          <input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
-          <button className="btn btn-dark" type="button" onClick={() => load(filters)}>
+      <div className="panel panel-flush">
+        <form
+          className="panel-toolbar filters"
+          onSubmit={(event) => {
+            event.preventDefault();
+            load(filters);
+          }}
+        >
+          <label className="filter-field search">
+            <span>Search</span>
+            <input
+              placeholder="Number, project or client"
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            />
+          </label>
+          <label className="filter-field">
+            <span>Client</span>
+            <input
+              placeholder="Company name"
+              value={filters.client}
+              onChange={(e) => setFilters({ ...filters, client: e.target.value })}
+            />
+          </label>
+          <label className="filter-field compact">
+            <span>Status</span>
+            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+              <option value="">All statuses</option>
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="filter-field compact">
+            <span>From</span>
+            <input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
+          </label>
+          <label className="filter-field compact">
+            <span>To</span>
+            <input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
+          </label>
+          <button className="btn btn-dark" type="submit">
             Apply
           </button>
-        </div>
+        </form>
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table table-wide">
             <thead>
               <tr>
-                <th>Quotation No.</th>
+                <th>Quotation no.</th>
                 <th>Date</th>
-                <th>Project Name</th>
+                <th>Project</th>
                 <th>Client</th>
                 <th>Location</th>
-                <th>Amount</th>
+                <th className="col-money">Amount</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th className="col-actions">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.quotationNumber}</td>
-                  <td>{formatShortDate(row.quotationDate)}</td>
-                  <td>{row.projectName}</td>
-                  <td>{row.clientCompany}</td>
-                  <td>{row.projectLocation}</td>
-                  <td>{formatINR(row.grandTotal)}</td>
-                  <td>
-                    <span className={`badge ${row.status}`}>{row.status}</span>
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <Link className="btn btn-ghost" to={`/quotations/${row.id}`}>
-                        View
-                      </Link>
-                      <Link className="btn btn-ghost" to={`/quotations/${row.id}/edit`}>
-                        Edit
-                      </Link>
-                      <button className="btn btn-ghost" type="button" onClick={() => duplicate(row.id)}>
-                        Duplicate
-                      </button>
-                      <button
-                        className="btn btn-ghost"
-                        type="button"
-                        disabled={pdfState.phase === "generating" || (pdfState.phase === "cooldown" && pdfState.id === row.id)}
-                        onClick={() => download(row.id, row.quotationNumber)}
-                      >
-                        {pdfState.id === row.id && pdfState.phase === "generating"
-                          ? "Generating PDF..."
-                          : pdfState.id === row.id && pdfState.phase === "cooldown"
-                            ? `Try Again in ${pdfState.seconds}s`
-                            : "PDF"}
-                      </button>
-                      <Link className="btn btn-ghost" to={`/quotations/${row.id}/print`} target="_blank">
-                        Print
-                      </Link>
-                      <button className="btn btn-danger" type="button" onClick={() => remove(row.id)}>
-                        Delete
-                      </button>
+              {rows.length ? (
+                rows.map((row) => {
+                  const busy =
+                    pdfState.id === row.id && (pdfState.phase === "generating" || pdfState.phase === "cooldown");
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <Link className="record-link" to={`/quotations/${row.id}`}>
+                          {row.quotationNumber}
+                        </Link>
+                      </td>
+                      <td>{formatShortDate(row.quotationDate)}</td>
+                      <td className="cell-clip" title={row.projectName}>{row.projectName}</td>
+                      <td className="cell-clip" title={row.clientCompany}>{row.clientCompany}</td>
+                      <td className="cell-clip" title={row.projectLocation}>{row.projectLocation}</td>
+                      <td className="col-money">{formatINR(row.grandTotal)}</td>
+                      <td>
+                        <span className={`badge ${row.status}`}>{row.status}</span>
+                      </td>
+                      <td className="col-actions">
+                        <div className="row-actions end">
+                          <Link className="btn btn-ghost btn-sm" to={`/quotations/${row.id}`}>
+                            View
+                          </Link>
+                          <Link className="btn btn-ghost btn-sm" to={`/quotations/${row.id}/edit`}>
+                            Edit
+                          </Link>
+                          <RowMenu
+                            items={[
+                              { label: "Duplicate", onClick: () => navigate(`/quotations/${row.id}/duplicate`) },
+                              {
+                                label: pdfLabel(row.id),
+                                disabled: pdfState.phase === "generating" || busy,
+                                onClick: () => download(row.id, row.quotationNumber),
+                              },
+                              { label: "Print", to: `/quotations/${row.id}/print`, target: "_blank" },
+                              { label: "Delete", danger: true, onClick: () => remove(row.id) },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="empty-cell" colSpan={8}>
+                    <div className="empty-state">
+                      <strong>No quotations match</strong>
+                      <p>Adjust the filters, or create a new quotation.</p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

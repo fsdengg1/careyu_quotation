@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { calculateQuotation, validateQuotation, resolveGstPercentage } from "../utils/calculations";
 import { isoDate } from "../utils/dateFormat";
 import {
@@ -14,6 +14,7 @@ import QuotationForm from "../components/quotation/QuotationForm";
 import QuotationPreview from "../components/quotation/QuotationPreview";
 import QuotationPageNav from "../components/quotation/QuotationPageNav";
 import CompletePreviewEditor from "../components/quotation/CompletePreviewEditor";
+import StatePanel from "../components/ui/StatePanel";
 
 function payloadFromForm(form, status) {
   return {
@@ -217,7 +218,7 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
     setCurrentPage(page);
   }
 
-  if (!form || !totals) return <div className="panel">{error || "Loading quotation workspace…"}</div>;
+  if (!form || !totals) return <StatePanel error={error}>Loading quotation…</StatePanel>;
 
   const previewAll = showCompletePreview;
   const canGoPrev = previewAll || currentPage > 1;
@@ -225,6 +226,13 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
 
   return (
     <>
+      <div className="workspace-meta">
+        <div>
+          <strong>{form.quotationNumber || "New quotation"}</strong>
+          <span>{form.clientCompany || form.projectName || "Client and project appear here as you fill page 1."}</span>
+        </div>
+        <span className={`badge ${form.status || "draft"}`}>{form.status || "draft"}</span>
+      </div>
       <QuotationPageNav
         currentPage={previewAll ? "preview" : currentPage}
         form={form}
@@ -251,12 +259,13 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
         )}
         <aside className="preview-pane">
           <div className="preview-toolbar">
-            <span>{previewAll ? "Complete A4 Quotation" : `Live A4 Preview · Page ${currentPage}`}</span>
-            <div>
-              <button className="btn btn-ghost" type="button" onClick={() => setScale((s) => Math.max(0.35, s - 0.05))}>
-                -
+            <span>{previewAll ? "Complete A4 quotation" : `Live preview · Page ${currentPage} of 5`}</span>
+            <div className="zoom-controls">
+              <button className="icon-btn" type="button" aria-label="Zoom out" onClick={() => setScale((s) => Math.max(0.35, +(s - 0.05).toFixed(2)))}>
+                −
               </button>
-              <button className="btn btn-ghost" type="button" onClick={() => setScale((s) => Math.min(1, s + 0.05))}>
+              <span>{Math.round(scale * 100)}%</span>
+              <button className="icon-btn" type="button" aria-label="Zoom in" onClick={() => setScale((s) => Math.min(1, +(s + 0.05).toFixed(2)))}>
                 +
               </button>
             </div>
@@ -279,46 +288,46 @@ export function QuotationWorkspace({ existingId = null, duplicateFromId = null }
           disabled={!canGoPrev}
           onClick={() => (previewAll ? goToPage(5) : goToPage(currentPage - 1))}
         >
-          ← Previous Page
+          Previous
         </button>
         <div className="page-step-actions">
           {!isEdit ? (
-            <button type="button" className="btn btn-ghost" onClick={resetForm}>
-              Reset Form
+            <button type="button" className="btn btn-ghost btn-sm" onClick={resetForm}>
+              Reset
             </button>
           ) : null}
-          <button type="button" className="btn btn-ghost" onClick={() => save("draft")} disabled={saving}>
-            Save Draft
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => save("draft")} disabled={saving}>
+            {saving ? "Saving…" : "Save draft"}
           </button>
-          <button type="button" className="btn btn-dark" onClick={() => setShowCompletePreview(true)}>
-            Preview Quotation
-          </button>
-          <button type="button" className="btn btn-primary" onClick={generate} disabled={saving || pdfState.phase === "generating"}>
-            Generate PDF
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowCompletePreview(true)}>
+            Preview all
           </button>
           <button
             type="button"
-            className="btn btn-ghost"
+            className="btn btn-ghost btn-sm"
             onClick={download}
             disabled={saving || pdfState.phase !== "idle"}
           >
             {pdfState.phase === "generating"
-              ? "Generating PDF..."
+              ? "Generating PDF…"
               : pdfState.phase === "cooldown"
-                ? `Try Again in ${pdfState.seconds}s`
+                ? `Try again in ${pdfState.seconds}s`
                 : "Download"}
           </button>
-          <button type="button" className="btn btn-ghost" onClick={printQuote}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={printQuote}>
             Print
+          </button>
+          <button type="button" className="btn btn-dark" onClick={generate} disabled={saving || pdfState.phase === "generating"}>
+            Generate PDF
           </button>
         </div>
         {canGoNext ? (
           <button type="button" className="btn btn-primary" onClick={() => goToPage(currentPage + 1)}>
-            Next Page →
+            Next page
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={() => setShowCompletePreview(true)}>
-            Preview Quotation →
+            Full preview
           </button>
         )}
       </div>
@@ -331,8 +340,8 @@ export default function CreateQuotation() {
     <div className="workspace-shell">
       <div className="page-head">
         <div>
-          <h1>Create Quotation</h1>
-          <p>Work through the quotation page by page. The live A4 sheet updates as you type.</p>
+          <p className="page-kicker"><Link to="/quotations">Quotations</Link></p>
+          <h1>Create quotation</h1>
         </div>
       </div>
       <QuotationWorkspace />

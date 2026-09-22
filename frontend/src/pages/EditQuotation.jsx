@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { QuotationWorkspace } from "./CreateQuotation";
 
 export default function EditQuotation() {
@@ -7,8 +7,10 @@ export default function EditQuotation() {
     <div className="workspace-shell">
       <div className="page-head">
         <div>
-          <h1>Edit Quotation</h1>
-          <p>Edit this quotation page by page. Company letterhead stays frozen to this quotation.</p>
+          <p className="page-kicker">
+            <Link to="/quotations">Quotations</Link>
+          </p>
+          <h1>Edit quotation</h1>
         </div>
       </div>
       <QuotationWorkspace existingId={id} />
