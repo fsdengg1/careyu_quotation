@@ -1,0 +1,2 @@
+# TypeORM migrations live here.
+# Do not enable synchronize: true. Add non-destructive migrations only.

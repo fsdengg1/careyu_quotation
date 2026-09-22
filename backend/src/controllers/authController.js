@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const prisma = require("../models/prisma");
+const { repos } = require("../db");
 const { httpError } = require("../middleware/validate");
 const { getSecret } = require("../runtime/env");
 
@@ -18,7 +18,7 @@ async function login(req, res, next) {
     const password = String(req.body.password || "");
     if (!email || !password) throw httpError(400, "Email and password are required.");
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await repos().users.findOne({ where: { email } });
     if (!user) throw httpError(401, "Invalid email or password.");
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) throw httpError(401, "Invalid email or password.");

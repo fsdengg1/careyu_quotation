@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const prisma = require("../models/prisma");
+const { repos } = require("../db");
 const { renderQuotationHtml } = require("../pdf/template");
 const { buildPdfFilename } = require("../utils/pdfFilename");
 const { httpError } = require("../middleware/validate");
@@ -411,11 +411,12 @@ async function generateFresh(quotation, fingerprint, requestId) {
   const pdfPath = await persistPdf(quotation, fingerprint, pdfBuffer, filename);
 
   const nextStatus = quotation.status === "draft" ? "generated" : quotation.status;
-  const updated = await prisma.quotation.update({
-    where: { id: quotation.id },
-    data: { pdfPath, status: nextStatus },
-    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true, customer: true },
+  await repos().quotations.update(quotation.id, {
+    pdfPath,
+    status: nextStatus,
+    updatedAt: new Date(),
   });
+  const updated = await quotationService.loadQuotation(quotation.id);
 
   logPdf({
     msg: "pdf_generate_ok",

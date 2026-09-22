@@ -2,16 +2,18 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const prisma = require("../src/models/prisma");
+const { initializeDatabase, closeDatabase } = require("../src/config/database");
+const { repos } = require("../src/db");
 const { renderQuotationHtml } = require("../src/pdf/template");
 const { serializeQuotation } = require("../src/services/quotationService");
 const OUT = path.join(__dirname, "../../_extract/pdf-pages");
 
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
-  const row = await prisma.quotation.findFirst({
+  await initializeDatabase();
+  const row = await repos().quotations.findOne({
     where: { quotationNumber: "CY260917-0001" },
-    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true },
+    relations: ["items", "terms"],
   });
   const quotation = serializeQuotation(row);
   const html = renderQuotationHtml(quotation);
@@ -36,4 +38,4 @@ main()
     console.error(err);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => closeDatabase());

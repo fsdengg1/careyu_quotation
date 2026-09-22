@@ -7,19 +7,13 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:seed": "node prisma/seed.js",
-    "postinstall": "prisma generate"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node scripts/seed.js",
+    "migration:run": "typeorm -d src/config/data-source.js migration:run",
+    "migration:show": "typeorm -d src/config/data-source.js migration:show",
+    "migration:revert": "typeorm -d src/config/data-source.js migration:revert"
   },
   "dependencies": {
     "@cloudflare/puppeteer": "^1.0.4",
-    "@prisma/adapter-pg": "^6.16.2",
-    "@prisma/client": "^6.16.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -28,7 +22,8 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "pg": "^8.16.3",
-    "prisma": "^6.16.2",
-    "puppeteer": "^23.11.1"
+    "puppeteer": "^23.11.1",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.26"
   }
 }

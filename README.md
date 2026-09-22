@@ -22,7 +22,7 @@ Local development still uses two Node processes. Production does not.
 ## Stack
 
 - Frontend: React 18, Vite, React Router, plain CSS
-- Backend: Node.js, Express, Prisma ORM, PostgreSQL
+- Backend: Node.js, Express, TypeORM, PostgreSQL
 - Production runtime: one Cloudflare Worker
 - PDF: Puppeteer locally; Cloudflare Browser Rendering (`@cloudflare/puppeteer`) in production
 - Pages: exactly 5 × A4 (Cover, About Us, Guarantee, Commercial, Terms)
@@ -61,13 +61,11 @@ Then:
 
 ```bash
 npm install
-npx prisma generate
-npx prisma migrate deploy
-npx prisma db seed
+npm run seed
 npm run dev
 ```
 
-Do **not** run `prisma db push --force-reset` or any destructive reset. Existing quotation, customer, settings, and user data must remain.
+Do **not** run destructive TypeORM synchronize or drop the existing PostgreSQL database. Existing quotation, customer, settings, and user data must remain.
 
 ### 2. Frontend
 
@@ -165,7 +163,7 @@ Unsafe filesystem characters are sanitized.
 
 ```
 frontend/     React application and A4 quotation templates
-backend/      Express API, Prisma schema, PDF renderer
+backend/      Express API, TypeORM entities, PDF renderer
 worker/       Cloudflare Worker entry (serves API; assets serve the SPA)
 wrangler.jsonc
 ```
@@ -258,11 +256,10 @@ The Worker launches Chromium with `@cloudflare/puppeteer` and `env.BROWSER`. Sto
 | Worker entry | `worker/index.js` |
 | Static assets | `frontend/dist` (SPA fallback enabled) |
 
-`npm run build` does three things:
+`npm run build` does two things:
 
 1. Builds the React/Vite frontend into `frontend/dist`
-2. Runs `prisma generate`
-3. Embeds PDF CSS, logo, cover image, and fonts for the Worker bundle
+2. Embeds PDF CSS, logo, cover image, and fonts for the Worker bundle
 
 Wrangler then deploys **one** Worker that serves those assets and the `/api/*` Express application.
 
@@ -296,22 +293,20 @@ Optional:
 
 Production CORS is not `Access-Control-Allow-Origin: *`. Same-origin calls do not need CORS. Development still allows `http://localhost:5173`.
 
-## 5. Prisma and database migration
+## 5. TypeORM and database migration
 
-Safe production command (does not reset data):
+The existing PostgreSQL schema is already in place. TypeORM is configured with `synchronize: false` and does not create or drop tables on startup.
+
+If a future schema change is required, add a non-destructive TypeORM migration and run:
 
 ```bash
 cd backend
-npx prisma generate
-npx prisma migrate deploy
+npm run migration:run
 ```
-
-Use the production `DATABASE_URL` in the environment when running `migrate deploy`. Run this once against the existing database after the Prisma client upgrade, then only when new migrations are added.
 
 Never run:
 
-- `prisma db push --force-reset`
-- `prisma migrate reset`
+- `synchronize: true` against production
 - anything that drops quotations, customers, settings, or users
 
 ## 6. Custom domain
@@ -357,7 +352,7 @@ Cloudflare automatically:
 1. Detects the push to `main`
 2. Installs dependencies
 3. Builds the frontend
-4. Generates Prisma Client and PDF assets
+4. Builds PDF assets
 5. Deploys the single Worker
 6. Updates frontend + backend + API together
 

@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { initializeDatabase } = require("./config/database");
 const app = require("./app");
 
 const PORT = process.env.PORT || 4001;
@@ -12,8 +13,13 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-app.listen(PORT, () => {
-  console.log(`CARE YU quotation API running on http://localhost:${PORT}`);
-});
-
-
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`CARE YU quotation API running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to connect to the database.", error.message);
+    process.exit(1);
+  });

@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { httpServerHandler } from "cloudflare:node";
 import app from "../backend/src/app.js";
 import runtimeEnv from "../backend/src/runtime/env.js";
+import { initializeDatabase } from "../backend/src/config/database.js";
 
 process.env.CF_WORKER = "1";
 
@@ -27,6 +28,20 @@ function dispatch(request, workerEnv, ctx) {
 export default {
   async fetch(request, workerEnv, ctx) {
     apply(workerEnv);
-    return dispatch(request, workerEnv, ctx);
+    try {
+      await initializeDatabase();
+      return await dispatch(request, workerEnv, ctx);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          msg: "worker_fetch_error",
+          message: String(error?.message || error),
+        })
+      );
+      return Response.json(
+        { message: "Unable to connect right now. Please wait a few seconds and try again." },
+        { status: 503, headers: { "Retry-After": "5" } }
+      );
+    }
   },
 };

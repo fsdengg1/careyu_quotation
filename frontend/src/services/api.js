@@ -16,14 +16,35 @@ function filenameFromDisposition(header) {
   return plain ? plain[1].trim() : "";
 }
 
-function apiError(status, data = {}, retryAfter) {
-  const rateLimited = status === 429 || data.error === "PDF_GENERATION_RATE_LIMITED";
-  const message = rateLimited
-    ? "PDF generation is temporarily busy. Please wait a moment and try again."
-    : data.details?.length
-      ? data.details.join(" ")
-      : data.message || "Request failed.";
-  const error = new Error(message);
+function isTechnicalMessage(message) {
+  return /invocation|connection slots|ECONN|internal server error|too many database|terminated unexpectedly|request failed|\b(400|401|403|404|500|502|503)\b/i.test(
+    message
+  );
+}
+
+function friendlyMessage(status, data = {}, path = "") {
+  const raw = String(data.message || "").trim();
+  const login = path.includes("/auth/login");
+  if (raw && !isTechnicalMessage(raw)) return raw;
+  if (status === 401) return "Invalid email or password.";
+  if (status === 403) return "You do not have permission to do that.";
+  if (status === 404) return "That item could not be found.";
+  if (status === 429 || data.error === "PDF_GENERATION_RATE_LIMITED") {
+    return "Please wait a moment and try again.";
+  }
+  if (status === 400) {
+    return data.details?.length ? data.details.join(" ") : "Please check the details and try again.";
+  }
+  if (status === 503 || data.error === "DB_BUSY" || status >= 500) {
+    return login
+      ? "Unable to sign in right now. Please wait a few seconds and try again."
+      : "Unable to connect right now. Please wait a few seconds and try again.";
+  }
+  return "Something went wrong. Please try again.";
+}
+
+function apiError(status, data = {}, retryAfter, path = "") {
+  const error = new Error(friendlyMessage(status, data, path));
   error.status = status;
   error.code = data.error;
   error.requestId = data.requestId;
@@ -38,11 +59,16 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
   if (body && !(body instanceof FormData)) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API}${path}`, {
-    method,
-    headers,
-    body: body && !(body instanceof FormData) ? JSON.stringify(body) : body,
-  });
+  let response;
+  try {
+    response = await fetch(`${API}${path}`, {
+      method,
+      headers,
+      body: body && !(body instanceof FormData) ? JSON.stringify(body) : body,
+    });
+  } catch {
+    throw apiError(503, { error: "DB_BUSY" }, 5, path);
+  }
 
   if (response.status === 401) {
     localStorage.removeItem("careyu_token");
@@ -55,8 +81,8 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
 
   if (isBlob) {
     if (!response.ok) {
-      const data = await response.json().catch(() => ({ message: "Request failed." }));
-      throw apiError(response.status, data, retryAfter);
+      const data = await response.json().catch(() => ({}));
+      throw apiError(response.status, data, retryAfter, path);
     }
     const blob = await response.blob();
     blob.filename = filenameFromDisposition(response.headers.get("Content-Disposition"));
@@ -65,7 +91,7 @@ export async function api(path, { method = "GET", body, isBlob = false } = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw apiError(response.status, data, retryAfter);
+    throw apiError(response.status, data, retryAfter, path);
   }
   return data;
 }

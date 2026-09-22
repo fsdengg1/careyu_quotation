@@ -1,8 +1,14 @@
-const prisma = require("../models/prisma");
+const { ILike, In, MoreThanOrEqual } = require("typeorm");
+const { getDataSource } = require("../config/database");
+const { repos } = require("../db");
+const { newId } = require("../entities/helpers");
+const { Quotation, QuotationItem, QuotationTerms } = require("../entities");
 const { calculateQuotation } = require("../utils/calculations");
 const { datePrefix, formatQuotationNumber } = require("../utils/quotationNumber");
 const { DEFAULT_COMPANY, DEFAULT_TERMS } = require("../utils/defaults");
 const { httpError, validateQuotationPayload } = require("../middleware/validate");
+
+const QUOTATION_RELATIONS = ["items", "terms", "customer"];
 
 function snapshotFromSettings(settings) {
   const source = settings || DEFAULT_COMPANY;
@@ -72,40 +78,47 @@ function termsFromBody(body, settings) {
 }
 
 async function getSettings() {
-  const settings = await prisma.companySettings.findUnique({ where: { id: "default" } });
+  const settings = await repos().settings.findOne({ where: { id: "default" } });
   return settings || DEFAULT_COMPANY;
 }
 
 async function nextQuotationNumber(date = new Date()) {
   const prefix = datePrefix(date);
-  const latest = await prisma.quotation.findFirst({
-    where: { quotationNumber: { startsWith: prefix } },
-    orderBy: { quotationNumber: "desc" },
+  const latest = await repos().quotations.findOne({
+    where: { quotationNumber: ILike(`${prefix}%`) },
+    order: { quotationNumber: "DESC" },
   });
   const sequence = latest ? Number(latest.quotationNumber.split("-")[1] || 0) + 1 : 1;
   return formatQuotationNumber(date, sequence);
 }
 
 async function assertUniqueNumber(quotationNumber, excludeId) {
-  const existing = await prisma.quotation.findUnique({
-    where: { quotationNumber },
-  });
+  const existing = await repos().quotations.findOne({ where: { quotationNumber } });
   if (existing && existing.id !== excludeId) {
     throw httpError(409, "Quotation number already exists. Please use a unique number.");
   }
 }
 
+function stripRelation(entity, key) {
+  if (!entity || typeof entity !== "object") return entity;
+  const copy = { ...entity };
+  delete copy[key];
+  return copy;
+}
+
 function serializeQuotation(quotation) {
   if (!quotation) return null;
+  const items = [...(quotation.items || [])].sort((a, b) => a.serialNumber - b.serialNumber);
   const totals = calculateQuotation(
-    quotation.items,
+    items,
     quotation.freight,
     quotation.installationCharge,
     quotation.gstPercentage,
     quotation.gstAsExtra
   );
   return {
-    ...quotation,
+    ...stripRelation(quotation, "createdBy"),
+    customer: quotation.customer ? stripRelation(quotation.customer, "quotations") : quotation.customer,
     subtotal: Number(quotation.subtotal),
     freight: Number(quotation.freight),
     installationCharge: Number(quotation.installationCharge),
@@ -114,57 +127,54 @@ function serializeQuotation(quotation) {
     gstAmount: Number(quotation.gstAmount),
     grandTotal: Number(quotation.grandTotal),
     totalBasicLanded: totals.totalBasicLanded,
-    items: (quotation.items || []).map((item) => ({
-      ...item,
+    items: items.map((item) => ({
+      ...stripRelation(item, "quotation"),
       unitPrice: Number(item.unitPrice),
       quantity: Number(item.quantity),
       totalAmount: Number(item.totalAmount),
     })),
+    terms: quotation.terms ? stripRelation(quotation.terms, "quotation") : quotation.terms,
   };
+}
+
+async function loadQuotation(id, manager) {
+  return repos(manager).quotations.findOne({
+    where: { id },
+    relations: QUOTATION_RELATIONS,
+  });
 }
 
 async function listQuotations(query = {}) {
   const { search, status, client, from, to } = query;
-  const where = {};
-  if (status) where.status = status;
+  const qb = repos()
+    .quotations.createQueryBuilder("q")
+    .leftJoinAndSelect("q.items", "items")
+    .leftJoinAndSelect("q.terms", "terms")
+    .leftJoinAndSelect("q.customer", "customer")
+    .orderBy("q.createdAt", "DESC")
+    .addOrderBy("items.serialNumber", "ASC");
+
+  if (status) qb.andWhere("q.status = :status", { status });
   if (client) {
-    where.OR = [
-      { clientCompany: { contains: client, mode: "insensitive" } },
-      { clientName: { contains: client, mode: "insensitive" } },
-    ];
+    qb.andWhere("(q.clientCompany ILIKE :client OR q.clientName ILIKE :client)", {
+      client: `%${client}%`,
+    });
   }
-  if (from || to) {
-    where.quotationDate = {};
-    if (from) where.quotationDate.gte = new Date(from);
-    if (to) where.quotationDate.lte = new Date(to);
-  }
+  if (from) qb.andWhere("q.quotationDate >= :from", { from });
+  if (to) qb.andWhere("q.quotationDate <= :to", { to });
   if (search) {
-    where.AND = [
-      ...(where.AND || []),
-      {
-        OR: [
-          { quotationNumber: { contains: search, mode: "insensitive" } },
-          { projectName: { contains: search, mode: "insensitive" } },
-          { clientName: { contains: search, mode: "insensitive" } },
-          { clientCompany: { contains: search, mode: "insensitive" } },
-        ],
-      },
-    ];
+    qb.andWhere(
+      "(q.quotationNumber ILIKE :search OR q.projectName ILIKE :search OR q.clientName ILIKE :search OR q.clientCompany ILIKE :search)",
+      { search: `%${search}%` }
+    );
   }
 
-  const rows = await prisma.quotation.findMany({
-    where,
-    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true, customer: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const rows = await qb.getMany();
   return rows.map(serializeQuotation);
 }
 
 async function getQuotation(id) {
-  const quotation = await prisma.quotation.findUnique({
-    where: { id },
-    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true, customer: true },
-  });
+  const quotation = await loadQuotation(id);
   if (!quotation) throw httpError(404, "Quotation not found.");
   return serializeQuotation(quotation);
 }
@@ -174,7 +184,7 @@ async function createQuotation(body, userId) {
   if (errors.length) throw httpError(400, "Validation failed.", errors);
 
   const settings = await getSettings();
-  let quotationNumber = String(body.quotationNumber || "").trim();
+  const quotationNumber = String(body.quotationNumber || "").trim();
   await assertUniqueNumber(quotationNumber);
 
   const totals = calculateQuotation(
@@ -185,8 +195,11 @@ async function createQuotation(body, userId) {
     body.gstAsExtra
   );
 
-  const created = await prisma.quotation.create({
-    data: {
+  const id = newId();
+  const ds = getDataSource();
+  await ds.transaction(async (manager) => {
+    await manager.getRepository(Quotation).save({
+      id,
       quotationNumber,
       quotationDate: new Date(body.quotationDate),
       projectName: String(body.projectName || "").trim(),
@@ -205,28 +218,35 @@ async function createQuotation(body, userId) {
       status: body.status || "draft",
       companySnapshot: mergeCompanySnapshot(snapshotFromSettings(settings), body.companySnapshot),
       createdById: userId || null,
-      items: {
-        create: totals.items.map((item) => ({
+      pdfPath: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    if (totals.items.length) {
+      await manager.getRepository(QuotationItem).save(
+        totals.items.map((item) => ({
+          id: newId(),
+          quotationId: id,
           serialNumber: item.serialNumber,
           description: item.description,
           unitPrice: item.unitPrice,
           quantity: item.quantity,
           totalAmount: item.totalAmount,
-        })),
-      },
-      terms: { create: termsFromBody(body, settings) },
-    },
-    include: { items: { orderBy: { serialNumber: "asc" } }, terms: true, customer: true },
+        }))
+      );
+    }
+    await manager.getRepository(QuotationTerms).save({
+      id: newId(),
+      quotationId: id,
+      ...termsFromBody(body, settings),
+    });
   });
 
-  return serializeQuotation(created);
+  return serializeQuotation(await loadQuotation(id));
 }
 
 async function updateQuotation(id, body, { forGenerate = false } = {}) {
-  const existing = await prisma.quotation.findUnique({
-    where: { id },
-    include: { items: true, terms: true },
-  });
+  const existing = await loadQuotation(id);
   if (!existing) throw httpError(404, "Quotation not found.");
 
   const payload = {
@@ -261,55 +281,59 @@ async function updateQuotation(id, body, { forGenerate = false } = {}) {
     payload.gstAsExtra
   );
 
-  const updated = await prisma.$transaction(async (tx) => {
-    await tx.quotationItem.deleteMany({ where: { quotationId: id } });
-    return tx.quotation.update({
-      where: { id },
-      data: {
-        quotationNumber: String(payload.quotationNumber).trim(),
-        quotationDate: new Date(payload.quotationDate),
-        projectName: String(payload.projectName || "").trim(),
-        projectLocation: String(payload.projectLocation || "").trim(),
-        clientName: String(payload.clientName || "").trim(),
-        clientCompany: String(payload.clientCompany || "").trim(),
-        customerId: payload.customerId || null,
-        subtotal: totals.subtotal,
-        freight: totals.freight,
-        installationCharge: totals.installationCharge,
-        gstPercentage: totals.gstPercentage,
-        gstAsExtra: totals.gstAsExtra,
-        gstAmount: totals.gstAmount,
-        grandTotal: totals.grandTotal,
-        amountInWords: totals.amountInWords,
-        status: payload.status,
-        companySnapshot: mergeCompanySnapshot(existing.companySnapshot, body.companySnapshot),
-        items: {
-          create: totals.items.map((item) => ({
-            serialNumber: item.serialNumber,
-            description: item.description,
-            unitPrice: item.unitPrice,
-            quantity: item.quantity,
-            totalAmount: item.totalAmount,
-          })),
-        },
-        terms: {
-          upsert: {
-            create: termsFromBody(payload, null),
-            update: termsFromBody(payload, null),
-          },
-        },
-      },
-      include: { items: { orderBy: { serialNumber: "asc" } }, terms: true, customer: true },
+  const ds = getDataSource();
+  await ds.transaction(async (manager) => {
+    await manager.getRepository(QuotationItem).delete({ quotationId: id });
+    await manager.getRepository(Quotation).update(id, {
+      quotationNumber: String(payload.quotationNumber).trim(),
+      quotationDate: new Date(payload.quotationDate),
+      projectName: String(payload.projectName || "").trim(),
+      projectLocation: String(payload.projectLocation || "").trim(),
+      clientName: String(payload.clientName || "").trim(),
+      clientCompany: String(payload.clientCompany || "").trim(),
+      customerId: payload.customerId || null,
+      subtotal: totals.subtotal,
+      freight: totals.freight,
+      installationCharge: totals.installationCharge,
+      gstPercentage: totals.gstPercentage,
+      gstAsExtra: totals.gstAsExtra,
+      gstAmount: totals.gstAmount,
+      grandTotal: totals.grandTotal,
+      amountInWords: totals.amountInWords,
+      status: payload.status,
+      companySnapshot: mergeCompanySnapshot(existing.companySnapshot, body.companySnapshot),
+      updatedAt: new Date(),
     });
+    if (totals.items.length) {
+      await manager.getRepository(QuotationItem).save(
+        totals.items.map((item) => ({
+          id: newId(),
+          quotationId: id,
+          serialNumber: item.serialNumber,
+          description: item.description,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          totalAmount: item.totalAmount,
+        }))
+      );
+    }
+    const termsPayload = termsFromBody(payload, null);
+    const termsRepo = manager.getRepository(QuotationTerms);
+    const existingTerms = await termsRepo.findOne({ where: { quotationId: id } });
+    if (existingTerms) {
+      await termsRepo.update(existingTerms.id, termsPayload);
+    } else {
+      await termsRepo.save({ id: newId(), quotationId: id, ...termsPayload });
+    }
   });
 
-  return serializeQuotation(updated);
+  return serializeQuotation(await loadQuotation(id));
 }
 
 async function deleteQuotation(id) {
-  const existing = await prisma.quotation.findUnique({ where: { id } });
+  const existing = await repos().quotations.findOne({ where: { id } });
   if (!existing) throw httpError(404, "Quotation not found.");
-  await prisma.quotation.delete({ where: { id } });
+  await repos().quotations.delete(id);
   return { success: true };
 }
 
@@ -342,24 +366,28 @@ async function duplicateQuotation(id, userId) {
 async function dashboardStats() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [total, drafts, generated, monthQuotes, aggregates] = await Promise.all([
-    prisma.quotation.count(),
-    prisma.quotation.count({ where: { status: "draft" } }),
-    prisma.quotation.count({ where: { status: { in: ["generated", "sent", "approved"] } } }),
-    prisma.quotation.count({ where: { createdAt: { gte: monthStart } } }),
-    prisma.quotation.aggregate({ _sum: { grandTotal: true } }),
+  const quotationRepo = repos().quotations;
+  const [total, drafts, generated, monthQuotes, sumRow, recent] = await Promise.all([
+    quotationRepo.count(),
+    quotationRepo.count({ where: { status: "draft" } }),
+    quotationRepo.count({ where: { status: In(["generated", "sent", "approved"]) } }),
+    quotationRepo.count({ where: { createdAt: MoreThanOrEqual(monthStart) } }),
+    quotationRepo
+      .createQueryBuilder("q")
+      .select("COALESCE(SUM(q.grandTotal), 0)", "sum")
+      .getRawOne(),
+    quotationRepo.find({
+      order: { createdAt: "DESC" },
+      take: 8,
+      relations: ["items"],
+    }),
   ]);
-  const recent = await prisma.quotation.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 8,
-    include: { items: true },
-  });
   return {
     totalQuotations: total,
     draftQuotations: drafts,
     generatedQuotations: generated,
     thisMonthQuotations: monthQuotes,
-    totalQuotationValue: Number(aggregates._sum.grandTotal || 0),
+    totalQuotationValue: Number(sumRow?.sum || 0),
     recent: recent.map(serializeQuotation),
   };
 }
@@ -376,4 +404,5 @@ module.exports = {
   duplicateQuotation,
   dashboardStats,
   serializeQuotation,
+  loadQuotation,
 };
